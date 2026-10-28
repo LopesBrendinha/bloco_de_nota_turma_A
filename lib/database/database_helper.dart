@@ -23,7 +23,12 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -34,9 +39,25 @@ class DatabaseHelper {
           title TEXT NOT NULL,
           content TEXT NOT NULL,
           date TEXT NOT NULL,
-        
+          category TEXT NOT NULL DEFAULT 'Geral',
+          isArchived INTEGER NOT NULL DEFAULT 0,
+          createdAt TEXT,
+          updatedAt TEXT
         )
       ''');
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        "ALTER TABLE notes ADD COLUMN category TEXT NOT NULL DEFAULT 'Geral'",
+      );
+      await db.execute(
+        'ALTER TABLE notes ADD COLUMN isArchived INTEGER NOT NULL DEFAULT 0',
+      );
+      await db.execute('ALTER TABLE notes ADD COLUMN createdAt TEXT');
+      await db.execute('ALTER TABLE notes ADD COLUMN updatedAt TEXT');
+    }
   }
 
   Future<int> insertNote(Note note) async {

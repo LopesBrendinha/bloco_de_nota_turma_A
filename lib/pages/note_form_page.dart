@@ -74,6 +74,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
       title: title,
       content: content,
       date: date,
+      category: widget.note?.category ?? 'Geral',
+      isArchived: widget.note?.isArchived ?? false,
+      createdAt: widget.note?.createdAt ?? now,
+      updatedAt: now,
     );
 
     // Verificamos se estamos criando
