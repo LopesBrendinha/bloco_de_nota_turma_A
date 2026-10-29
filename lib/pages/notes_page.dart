@@ -142,6 +142,46 @@ class _NotesPageState extends State<NotesPage> {
     final categories = <String>{'Todas', ...notes.map((note) => note.category)}
         .toList();
     final filteredNotes = visibleNotes;
+    final categoryDropdown = DropdownButtonFormField<String>(
+      isExpanded: true,
+      initialValue: categories.contains(selectedCategory)
+          ? selectedCategory
+          : 'Todas',
+      decoration: const InputDecoration(
+        labelText: 'Categoria',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      items: categories
+          .map((category) => DropdownMenuItem(
+                value: category,
+                child: Text(category,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ))
+          .toList(),
+      onChanged: (category) {
+        if (category != null) setState(() => selectedCategory = category);
+      },
+    );
+    final sortDropdown = DropdownButtonFormField<NoteSortOrder>(
+      isExpanded: true,
+      initialValue: sortOrder,
+      decoration: const InputDecoration(
+        labelText: 'Ordenar',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      items: NoteSortOrder.values
+          .map((order) => DropdownMenuItem(
+                value: order,
+                child: Text(order.label,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ))
+          .toList(),
+      onChanged: (order) {
+        if (order != null) setState(() => sortOrder = order);
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -207,55 +247,25 @@ class _NotesPageState extends State<NotesPage> {
               ),
             ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: categories.contains(selectedCategory)
-                        ? selectedCategory
-                        : 'Todas',
-                    decoration: const InputDecoration(
-                      labelText: 'Categoria',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: categories
-                        .map((category) => DropdownMenuItem(
-                              value: category,
-                              child: Text(category,
-                                  overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (category) {
-                      if (category != null) {
-                        setState(() => selectedCategory = category);
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<NoteSortOrder>(
-                    initialValue: sortOrder,
-                    decoration: const InputDecoration(
-                      labelText: 'Ordenar',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: NoteSortOrder.values
-                        .map((order) => DropdownMenuItem(
-                              value: order,
-                              child: Text(order.label,
-                                  overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (order) {
-                      if (order != null) setState(() => sortOrder = order);
-                    },
-                  ),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 440) {
+                  return Column(
+                    children: [
+                      categoryDropdown,
+                      const SizedBox(height: 8),
+                      sortDropdown,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: categoryDropdown),
+                    const SizedBox(width: 10),
+                    Expanded(flex: 2, child: sortDropdown),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
             Expanded(
