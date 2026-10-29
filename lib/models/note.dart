@@ -61,7 +61,12 @@ class Note {
     );
   }
 
-  Note copyWith({String? firestoreId, bool? needsSync}) {
+  Note copyWith({
+    String? firestoreId,
+    bool? needsSync,
+    bool? isArchived,
+    DateTime? updatedAt,
+  }) {
     return Note(
       id: id,
       uid: uid,
@@ -69,9 +74,9 @@ class Note {
       content: content,
       date: date,
       category: category,
-      isArchived: isArchived,
+      isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt,
-      updatedAt: updatedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       firestoreId: firestoreId ?? this.firestoreId,
       needsSync: needsSync ?? this.needsSync,
     );

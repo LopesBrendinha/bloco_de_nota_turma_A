@@ -32,6 +32,7 @@ class _NotesPageState extends State<NotesPage> {
   List<Note> notes = [];
   String selectedCategory = 'Todas';
   NoteSortOrder sortOrder = NoteSortOrder.newest;
+  bool viewingArchived = false;
 
   @override
   void initState() {
@@ -64,7 +65,9 @@ class _NotesPageState extends State<NotesPage> {
           note.content.toLowerCase().contains(query);
       final matchesCategory =
           selectedCategory == 'Todas' || note.category == selectedCategory;
-      return !note.isArchived && matchesText && matchesCategory;
+      return note.isArchived == viewingArchived &&
+          matchesText &&
+          matchesCategory;
     }).toList();
 
     DateTime created(Note note) =>
@@ -95,6 +98,16 @@ class _NotesPageState extends State<NotesPage> {
         const SnackBar(content: Text('Nota deletada com sucesso!')),
       );
     }
+  }
+
+  Future<void> toggleArchive(Note note) async {
+    final updatedNote = note.copyWith(
+      isArchived: !note.isArchived,
+      updatedAt: DateTime.now(),
+      needsSync: true,
+    );
+    await database.updateNote(updatedNote);
+    await loadNotes();
   }
 
   Future<void> logout() async {
@@ -132,9 +145,20 @@ class _NotesPageState extends State<NotesPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Minhas notas',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          viewingArchived ? 'Notas arquivadas' : 'Minhas notas',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
+          IconButton(
+            tooltip: viewingArchived ? 'Ver notas ativas' : 'Ver arquivadas',
+            onPressed: () => setState(() => viewingArchived = !viewingArchived),
+            icon: Icon(
+              viewingArchived
+                  ? Icons.sticky_note_2_outlined
+                  : Icons.archive_outlined,
+            ),
+          ),
           IconButton(
             tooltip: 'Sair',
             onPressed: logout,
@@ -143,7 +167,9 @@ class _NotesPageState extends State<NotesPage> {
           const SizedBox(width: 8),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: viewingArchived
+          ? null
+          : FloatingActionButton.extended(
         onPressed: openNewNote,
         backgroundColor: const Color(0xff6c4ab6),
         foregroundColor: Colors.white,
@@ -235,9 +261,13 @@ class _NotesPageState extends State<NotesPage> {
             Expanded(
               child: filteredNotes.isEmpty
                   ? Center(
-                      child: Text(notes.isEmpty
-                          ? 'Nenhuma nota ainda. Crie sua primeira nota.'
-                          : 'Nenhuma nota corresponde aos filtros.'),
+                      child: Text(
+                        viewingArchived
+                            ? 'Nenhuma nota arquivada.'
+                            : notes.isEmpty
+                                ? 'Nenhuma nota ainda. Crie sua primeira nota.'
+                                : 'Nenhuma nota corresponde aos filtros.',
+                      ),
                     )
                   : ListView.builder(
                       itemCount: filteredNotes.length,
@@ -247,6 +277,7 @@ class _NotesPageState extends State<NotesPage> {
                           note: note,
                           onTap: () => openEditNote(note),
                           onDelete: () => deleteNote(note.id!),
+                          onToggleArchive: () => toggleArchive(note),
                         );
                       },
                     ),
