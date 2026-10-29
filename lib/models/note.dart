@@ -8,6 +8,8 @@ class Note {
   final bool isArchived;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? firestoreId;
+  final bool needsSync;
 
   Note({
     this.id,
@@ -19,6 +21,8 @@ class Note {
     this.isArchived = false,
     this.createdAt,
     this.updatedAt,
+    this.firestoreId,
+    this.needsSync = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +36,8 @@ class Note {
       'isArchived': isArchived ? 1 : 0,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
+      'firestoreId': firestoreId,
+      'needsSync': needsSync ? 1 : 0,
     };
   }
 
@@ -50,6 +56,24 @@ class Note {
       updatedAt: map['updatedAt'] == null
           ? null
           : DateTime.parse(map['updatedAt'] as String),
+      firestoreId: map['firestoreId'] as String?,
+      needsSync: (map['needsSync'] as int? ?? 0) == 1,
+    );
+  }
+
+  Note copyWith({String? firestoreId, bool? needsSync}) {
+    return Note(
+      id: id,
+      uid: uid,
+      title: title,
+      content: content,
+      date: date,
+      category: category,
+      isArchived: isArchived,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      firestoreId: firestoreId ?? this.firestoreId,
+      needsSync: needsSync ?? this.needsSync,
     );
   }
 }

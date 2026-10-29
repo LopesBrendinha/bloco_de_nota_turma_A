@@ -48,8 +48,12 @@ class _NotesPageState extends State<NotesPage> {
   Future<void> loadNotes() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final result = await database.getNotes(user.uid);
-    if (mounted) setState(() => notes = result);
+    final localNotes = await database.getNotes(user.uid);
+    if (mounted) setState(() => notes = localNotes);
+
+    await database.syncNotes();
+    final syncedNotes = await database.getNotes(user.uid);
+    if (mounted) setState(() => notes = syncedNotes);
   }
 
   List<Note> get visibleNotes {
@@ -181,7 +185,7 @@ class _NotesPageState extends State<NotesPage> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: categories.contains(selectedCategory)
+                    initialValue: categories.contains(selectedCategory)
                         ? selectedCategory
                         : 'Todas',
                     decoration: const InputDecoration(
@@ -207,7 +211,7 @@ class _NotesPageState extends State<NotesPage> {
                 Expanded(
                   flex: 2,
                   child: DropdownButtonFormField<NoteSortOrder>(
-                    value: sortOrder,
+                    initialValue: sortOrder,
                     decoration: const InputDecoration(
                       labelText: 'Ordenar',
                       border: OutlineInputBorder(),
