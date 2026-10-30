@@ -23,7 +23,18 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            "ALTER TABLE notes ADD COLUMN category TEXT NOT NULL DEFAULT 'Pessoal'",
+          );
+        }
+      },
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -34,7 +45,7 @@ class DatabaseHelper {
           title TEXT NOT NULL,
           content TEXT NOT NULL,
           date TEXT NOT NULL,
-        
+          category TEXT NOT NULL DEFAULT 'Pessoal'
         )
       ''');
   }
@@ -74,13 +85,9 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteNote(int id) async{
+  Future<int> deleteNote(int id) async {
     final db = await instance.database;
 
-    return await db.delete(
-      'notes',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('notes', where: 'id = ?', whereArgs: [id]);
   }
 }

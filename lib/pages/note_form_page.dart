@@ -17,6 +17,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   final titleController = TextEditingController();
 
   final contentController = TextEditingController();
+  final categoryController = TextEditingController();
 
   final database = DatabaseHelper.instance;
 
@@ -30,6 +31,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
       titleController.text = widget.note!.title;
 
       contentController.text = widget.note!.content;
+      categoryController.text = widget.note!.category;
+    } else {
+      categoryController.text = 'Pessoal';
     }
   }
 
@@ -74,6 +78,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
       title: title,
       content: content,
       date: date,
+      category: categoryController.text.trim().isEmpty
+          ? 'Pessoal'
+          : categoryController.text.trim(),
     );
 
     // Verificamos se estamos criando
@@ -97,6 +104,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   void dispose() {
     titleController.dispose();
     contentController.dispose();
+    categoryController.dispose();
 
     super.dispose();
   }
@@ -143,6 +151,18 @@ class _NoteFormPageState extends State<NoteFormPage> {
             ),
 
             const Divider(color: Color(0xFFE4DFEA)),
+
+            TextField(
+              controller: categoryController,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Categoria',
+                hintText: 'Ex.: estudos, trabalho, pessoal',
+                prefixIcon: Icon(Icons.label_outline_rounded),
+              ),
+            ),
+
+            const SizedBox(height: 12),
 
             Expanded(
               child: TextField(
