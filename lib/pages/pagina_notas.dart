@@ -1,23 +1,26 @@
 import 'package:bloco_de_nota_turma_a/database/database_helper.dart';
 import 'package:bloco_de_nota_turma_a/models/note.dart';
-import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
-import 'package:bloco_de_nota_turma_a/pages/note_form_page.dart';
+import 'package:bloco_de_nota_turma_a/pages/pagina_login.dart';
+import 'package:bloco_de_nota_turma_a/pages/pagina_formulario_nota.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:bloco_de_nota_turma_a/widgets/note_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
-class NotesPage extends StatefulWidget {
-  const NotesPage({super.key});
+import '../services/notes_cloud_service.dart';
+
+class PaginaNotas extends StatefulWidget {
+  const PaginaNotas({super.key});
 
   @override
-  State<NotesPage> createState() => _NotesPageState();
+  State<PaginaNotas> createState() => _PaginaNotasState();
 }
 
-class _NotesPageState extends State<NotesPage> {
+class _PaginaNotasState extends State<PaginaNotas> {
   final DatabaseHelper database = DatabaseHelper.instance;
   final AuthService authService = AuthService();
+  final NotesCloudService cloudService = NotesCloudService();
 
   List<Note> notes = [];
   final searchController = TextEditingController();
@@ -36,6 +39,116 @@ class _NotesPageState extends State<NotesPage> {
 
   Future<void> loadNotes() async {
     final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final localNotes = await database.getNotes(user.uid);
+
+    if (mounted) {
+      setState(() => notes = localNotes);
+    }
+
+    try {
+      for (final localNote in localNotes.where((note) => !note.isSynced)) {
+        final note = localNote.cloudId == null
+            ? localNote.copyWith(cloudId: cloudService.createNoteId(user.uid))
+            : localNote;
+        if (note.cloudId != localNote.cloudId) {
+          await database.updateNote(note);
+        }
+        await cloudService.saveNote(note);
+        await database.updateNote(note.copyWith(isSynced: true));
+      }
+
+      final cloudNotes = await cloudService.getNotes(user.uid);
+      for (final cloudNote in cloudNotes) {
+        await database.saveCloudNote(cloudNote);
+      }
+
+      final updatedNotes = await database.getNotes(user.uid);
+      if (mounted) setState(() => notes = updatedNotes);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Sem conexão com o Firebase. As notas locais foram mantidas.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> deleteNote(Note note) async {
+    try {
+      await cloudService.deleteNote(note);
+      await database.deleteNote(note.id!);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível excluir a nota no Firebase.'),
+          ),
+        );
+      }
+      return;
+    }
+    await loadNotes();
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Nota deletada com sucesso!")));
+    }
+  }
+
+  Future<void> logout() async {
+    await authService.logout();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => PaginaLogin()),
+      (route) => false,
+    );
+  }
+
+  Future<void> openEditNote(Note note) async {
+    final cloudFailed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(builder: (_) => PaginaFormularioNota(note: note)),
+    );
+
+    await loadNotes();
+    if (cloudFailed == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nota salva no aparelho; será enviada ao Firebase depois.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> openNewNote() async {
+    final cloudFailed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(builder: (_) => PaginaFormularioNota()),
+    );
+
+    await loadNotes();
+    if (cloudFailed == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nota salva no aparelho; será enviada ao Firebase depois.',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
     final query = searchQuery.trim().toLowerCase();
     final filteredNotes = notes
         .where(
@@ -45,56 +158,6 @@ class _NotesPageState extends State<NotesPage> {
               note.category.toLowerCase().contains(query),
         )
         .toList();
-    if (user == null) return;
-    final result = await database.getNotes(user.uid);
-
-    if (mounted) {
-      setState(() {
-        notes = result;
-      });
-    }
-  }
-
-  Future<void> deleteNote(int id) async {
-    await database.deleteNote(id);
-    await loadNotes();
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Nota deletada com sucesso!")));
-    }
-  }
-
-  Future<void> logout() async {
-    await authService.logout();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => LoginPage()),
-      (route) => false,
-    );
-  }
-
-  Future<void> openEditNote(Note note) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => NoteFormPage(note: note)),
-    );
-
-    await loadNotes();
-  }
-
-  Future<void> openNewNote() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => NoteFormPage()),
-    );
-
-    await loadNotes();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -187,7 +250,7 @@ class _NotesPageState extends State<NotesPage> {
                     return NoteCard(
                       note: note,
                       onTap: () => openEditNote(note),
-                      onDelete: () => deleteNote(note.id!),
+                      onDelete: () => deleteNote(note),
                     );
                   },
                 ),
