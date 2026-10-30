@@ -2,14 +2,14 @@ import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
-class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+class PaginaCadastro extends StatefulWidget {
+  const PaginaCadastro({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  State<PaginaCadastro> createState() => _PaginaCadastroState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _PaginaCadastroState extends State<PaginaCadastro> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
@@ -173,10 +173,17 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             SizedBox(height: 30),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xff4b2e83),
+                foregroundColor: Colors.white,
+              ),
               onPressed: loading ? null : register,
               child: loading
                   ? CircularProgressIndicator(color: Colors.white)
-                  : Text("Criar minha conta", style: TextStyle(fontWeight: FontWeight.bold),)
+                  : Text(
+                      "Criar minha conta",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
             ),
           ],
         ),

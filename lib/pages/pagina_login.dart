@@ -1,16 +1,16 @@
-import 'package:bloco_de_nota_turma_a/pages/notes_page.dart';
-import 'package:bloco_de_nota_turma_a/pages/register_page.dart';
+import 'package:bloco_de_nota_turma_a/pages/pagina_notas.dart';
+import 'package:bloco_de_nota_turma_a/pages/pagina_cadastro.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class PaginaLogin extends StatefulWidget {
+  const PaginaLogin({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<PaginaLogin> createState() => _PaginaLoginState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _PaginaLoginState extends State<PaginaLogin> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
@@ -37,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
       if (user != null && mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => NotesPage()),
+          MaterialPageRoute(builder: (_) => PaginaNotas()),
         );
       }
     } catch (e) {
@@ -182,7 +182,7 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => RegisterPage()),
+                        MaterialPageRoute(builder: (_) => PaginaCadastro()),
                       );
                     },
                     child: Text("Ainda não possui uma conta? Cadastre-se", ),

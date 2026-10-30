@@ -3,22 +3,27 @@ import 'package:flutter/material.dart';
 
 import '../database/database_helper.dart';
 import '../models/note.dart';
+import '../services/notes_cloud_service.dart';
 
-class NoteFormPage extends StatefulWidget {
+class PaginaFormularioNota extends StatefulWidget {
   final Note? note;
 
-  const NoteFormPage({super.key, this.note});
+  const PaginaFormularioNota({super.key, this.note});
 
   @override
-  State<NoteFormPage> createState() => _NoteFormPageState();
+  State<PaginaFormularioNota> createState() => _PaginaFormularioNotaState();
 }
 
-class _NoteFormPageState extends State<NoteFormPage> {
+class _PaginaFormularioNotaState extends State<PaginaFormularioNota> {
   final titleController = TextEditingController();
 
   final contentController = TextEditingController();
+  final categoryController = TextEditingController();
 
   final database = DatabaseHelper.instance;
+  final cloudService = NotesCloudService();
+
+  bool isSaving = false;
 
   bool get isEditing => widget.note != null;
 
@@ -30,10 +35,15 @@ class _NoteFormPageState extends State<NoteFormPage> {
       titleController.text = widget.note!.title;
 
       contentController.text = widget.note!.content;
+      categoryController.text = widget.note!.category;
+    } else {
+      categoryController.text = 'Pessoal';
     }
   }
 
   Future<void> saveNote() async {
+    if (isSaving) return;
+
     // Pegamos o usuário atualmente autenticado.
     final user = FirebaseAuth.instance.currentUser;
 
@@ -47,8 +57,13 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
     // Verificamos se existe conteúdo.
     if (content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Digite o conteúdo da nota.')),
+      );
       return;
     }
+
+    setState(() => isSaving = true);
 
     // Criamos a data da alteração.
     final now = DateTime.now();
@@ -74,22 +89,47 @@ class _NoteFormPageState extends State<NoteFormPage> {
       title: title,
       content: content,
       date: date,
+      category: categoryController.text.trim().isEmpty
+          ? 'Pessoal'
+          : categoryController.text.trim(),
+      cloudId: widget.note?.cloudId ?? cloudService.createNoteId(user.uid),
+      isSynced: false,
     );
 
     // Verificamos se estamos criando
     // ou editando uma nota.
-    if (isEditing) {
-      // UPDATE
-      await database.updateNote(note);
-    } else {
-      // INSERT
-      await database.insertNote(note);
+    int localId;
+    try {
+      if (isEditing) {
+        await database.updateNote(note);
+        localId = note.id!;
+      } else {
+        localId = await database.insertNote(note);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível salvar a nota no aparelho.'),
+          ),
+        );
+        setState(() => isSaving = false);
+      }
+      return;
+    }
+
+    var cloudFailed = false;
+    try {
+      await cloudService.saveNote(note);
+      await database.updateNote(note.copyWith(id: localId, isSynced: true));
+    } catch (_) {
+      cloudFailed = true;
     }
 
     // Depois de salvar,
     // voltamos para a tela anterior.
     if (mounted) {
-      Navigator.pop(context);
+      Navigator.pop(context, cloudFailed);
     }
   }
 
@@ -97,6 +137,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
   void dispose() {
     titleController.dispose();
     contentController.dispose();
+    categoryController.dispose();
 
     super.dispose();
   }
@@ -112,8 +153,15 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
         actions: [
           IconButton(
-            onPressed: saveNote,
-            icon: const Icon(Icons.check_rounded),
+            tooltip: 'Salvar nota',
+            onPressed: isSaving ? null : saveNote,
+            icon: isSaving
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.check_rounded),
           ),
 
           const SizedBox(width: 8),
@@ -143,6 +191,18 @@ class _NoteFormPageState extends State<NoteFormPage> {
             ),
 
             const Divider(color: Color(0xFFE4DFEA)),
+
+            TextField(
+              controller: categoryController,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Categoria',
+                hintText: 'Ex.: estudos, trabalho, pessoal',
+                prefixIcon: Icon(Icons.label_outline_rounded),
+              ),
+            ),
+
+            const SizedBox(height: 12),
 
             Expanded(
               child: TextField(
