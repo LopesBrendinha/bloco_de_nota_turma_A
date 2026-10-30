@@ -25,6 +25,22 @@ class _PaginaNotasState extends State<PaginaNotas> {
   List<Note> notes = [];
   final searchController = TextEditingController();
   String searchQuery = '';
+  bool newestFirst = true;
+
+  DateTime _dateValue(String value) {
+    final parts = value.split(' ');
+    final dateParts = parts.first.split('/');
+    final timeParts = parts.length > 1 ? parts[1].split(':') : ['0', '0'];
+
+    return DateTime(
+      int.parse(dateParts[2]),
+      int.parse(dateParts[1]),
+      int.parse(dateParts[0]),
+      int.parse(timeParts[0]),
+      int.parse(timeParts[1]),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -158,6 +174,10 @@ class _PaginaNotasState extends State<PaginaNotas> {
               note.category.toLowerCase().contains(query),
         )
         .toList();
+    filteredNotes.sort((a, b) {
+      final comparison = _dateValue(a.date).compareTo(_dateValue(b.date));
+      return newestFirst ? -comparison : comparison;
+    });
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -165,6 +185,13 @@ class _PaginaNotasState extends State<PaginaNotas> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
+          IconButton(
+            tooltip: newestFirst
+                ? 'Mais recentes primeiro'
+                : 'Mais antigas primeiro',
+            onPressed: () => setState(() => newestFirst = !newestFirst),
+            icon: Icon(newestFirst ? Icons.south_rounded : Icons.north_rounded),
+          ),
           IconButton(
             tooltip: "Sair",
             onPressed: logout,
