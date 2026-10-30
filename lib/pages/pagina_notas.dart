@@ -133,11 +133,13 @@ class _PaginaNotasState extends State<PaginaNotas> {
     );
 
     await loadNotes();
-    if (cloudFailed == true && mounted) {
+    if (cloudFailed != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Nota salva no aparelho; será enviada ao Firebase depois.',
+            cloudFailed
+                ? 'Nota salva no aparelho; será enviada ao Firebase depois.'
+                : 'Nota atualizada com sucesso!',
           ),
         ),
       );
@@ -151,11 +153,13 @@ class _PaginaNotasState extends State<PaginaNotas> {
     );
 
     await loadNotes();
-    if (cloudFailed == true && mounted) {
+    if (cloudFailed != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Nota salva no aparelho; será enviada ao Firebase depois.',
+            cloudFailed
+                ? 'Nota salva no aparelho; será enviada ao Firebase depois.'
+                : 'Nota criada com sucesso!',
           ),
         ),
       );

@@ -173,10 +173,17 @@ class _PaginaCadastroState extends State<PaginaCadastro> {
             ),
             SizedBox(height: 30),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xff4b2e83),
+                foregroundColor: Colors.white,
+              ),
               onPressed: loading ? null : register,
               child: loading
                   ? CircularProgressIndicator(color: Colors.white)
-                  : Text("Criar minha conta", style: TextStyle(fontWeight: FontWeight.bold),)
+                  : Text(
+                      "Criar minha conta",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
             ),
           ],
         ),

@@ -47,27 +47,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCk0m7dk83-AKuadqkdyVJ1yK3-apqVd-o',
-    appId: '1:917005993637:web:17da01cb3f1d22abd0af4c',
-    messagingSenderId: '917005993637',
-    projectId: 'blocodenotasturmaa',
-    authDomain: 'blocodenotasturmaa.firebaseapp.com',
-    storageBucket: 'blocodenotasturmaa.firebasestorage.app',
+    apiKey: 'AIzaSyAqQE-kFKD-7jGzYOB9H2lww_fz0cgKqFY',
+    appId: '1:888419947355:web:2138a56f24899c55c3407e',
+    messagingSenderId: '888419947355',
+    projectId: 'bdbloconotas',
+    authDomain: 'bdbloconotas.firebaseapp.com',
+    storageBucket: 'bdbloconotas.firebasestorage.app',
+    measurementId: 'G-DTESW9KPZ3',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB9LiQ3tI8ioFn2SCtyLWo10RZcxgRFvxg',
-    appId: '1:917005993637:android:93d6c01000c35761d0af4c',
-    messagingSenderId: '917005993637',
-    projectId: 'blocodenotasturmaa',
-    storageBucket: 'blocodenotasturmaa.firebasestorage.app',
+    apiKey: 'AIzaSyBitWC03VDMOEksE_aEwb86Prfg8smarx8',
+    appId: '1:888419947355:android:39c2b94a8993b35ec3407e',
+    messagingSenderId: '888419947355',
+    projectId: 'bdbloconotas',
+    storageBucket: 'bdbloconotas.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBUedL-Dhe4iqkDrF6WLOSWEj7QtdO9WR8',
-    appId: '1:917005993637:ios:fdac2f5cae22016bd0af4c',
-    messagingSenderId: '917005993637',
-    projectId: 'blocodenotasturmaa',
-    storageBucket: 'blocodenotasturmaa.firebasestorage.app',
+    apiKey: 'AIzaSyDSze85B5qZVsHZKx-XBFjAqNCXtF3yy98',
+    appId: '1:888419947355:ios:16dd27071d2498fac3407e',
+    messagingSenderId: '888419947355',
+    projectId: 'bdbloconotas',
+    storageBucket: 'bdbloconotas.firebasestorage.app',
     iosBundleId: 'com.example.blocoDeNotaTurmaa',
   );
 }

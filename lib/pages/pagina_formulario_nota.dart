@@ -23,6 +23,8 @@ class _PaginaFormularioNotaState extends State<PaginaFormularioNota> {
   final database = DatabaseHelper.instance;
   final cloudService = NotesCloudService();
 
+  bool isSaving = false;
+
   bool get isEditing => widget.note != null;
 
   @override
@@ -40,6 +42,8 @@ class _PaginaFormularioNotaState extends State<PaginaFormularioNota> {
   }
 
   Future<void> saveNote() async {
+    if (isSaving) return;
+
     // Pegamos o usuário atualmente autenticado.
     final user = FirebaseAuth.instance.currentUser;
 
@@ -58,6 +62,8 @@ class _PaginaFormularioNotaState extends State<PaginaFormularioNota> {
       );
       return;
     }
+
+    setState(() => isSaving = true);
 
     // Criamos a data da alteração.
     final now = DateTime.now();
@@ -107,6 +113,7 @@ class _PaginaFormularioNotaState extends State<PaginaFormularioNota> {
             content: Text('Não foi possível salvar a nota no aparelho.'),
           ),
         );
+        setState(() => isSaving = false);
       }
       return;
     }
@@ -146,8 +153,15 @@ class _PaginaFormularioNotaState extends State<PaginaFormularioNota> {
 
         actions: [
           IconButton(
-            onPressed: saveNote,
-            icon: const Icon(Icons.check_rounded),
+            tooltip: 'Salvar nota',
+            onPressed: isSaving ? null : saveNote,
+            icon: isSaving
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.check_rounded),
           ),
 
           const SizedBox(width: 8),
