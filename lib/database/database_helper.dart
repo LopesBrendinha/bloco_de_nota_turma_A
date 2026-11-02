@@ -1,86 +1,100 @@
-import 'package:bloco_de_nota_turma_a/models/note.dart';
+
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../models/note.dart';
+
 class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
+  DatabaseHelper._();
 
-  static Database? _database;
+  static final instance = DatabaseHelper._();
 
-  DatabaseHelper._init();
+  Database? _db;
 
   Future<Database> get database async {
-    if (_database != null) {
-      return _database!;
-    } else {
-      _database = await _initDB('notes.db');
+    if (_db != null) return _db!;
 
-      return _database!;
-    }
-  }
+    final path = kIsWeb
+        ? 'caderno_de_bolso_web.db'
+        : join(
+            await getDatabasesPath(),
+            'caderno_de_bolso.db',
+          );
 
-  Future<Database> _initDB(String fileName) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, fileName);
+    _db = await openDatabase(
+      path,
+      version: 2,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE notes(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cloudId TEXT NOT NULL UNIQUE,
+            uid TEXT NOT NULL,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            category TEXT NOT NULL,
+            date TEXT NOT NULL,
+            pinned INTEGER NOT NULL DEFAULT 0
+          )
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            "ALTER TABLE notes ADD COLUMN cloudId TEXT NOT NULL DEFAULT ''",
+          );
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
-  }
+          await db.execute(
+            "ALTER TABLE notes ADD COLUMN category TEXT NOT NULL DEFAULT 'Geral'",
+          );
 
-  Future<void> _createDB(Database db, int version) async {
-    await db.execute('''
-        CREATE TABLE notes(
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          uid TEXT NOT NULL,
-          title TEXT NOT NULL,
-          content TEXT NOT NULL,
-          date TEXT NOT NULL,
-        
-        )
-      ''');
-  }
+          await db.execute(
+            'ALTER TABLE notes ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0',
+          );
 
-  Future<int> insertNote(Note note) async {
-    final db = await instance.database;
+          await db.execute(
+            "UPDATE notes SET cloudId = 'local-' || id",
+          );
+        }
+      },
+    );
 
-    return await db.insert('notes', note.toMap());
+    return _db!;
   }
 
   Future<List<Note>> getNotes(String uid) async {
-    final db = await instance.database;
+    final db = await database;
 
-    final result = await db.query(
-      "notes",
-
-      where: "uid = ?",
-
+    final rows = await db.query(
+      'notes',
+      where: 'uid = ?',
       whereArgs: [uid],
-
-      orderBy: "id DESC",
+      orderBy: 'pinned DESC, id DESC',
     );
 
-    return result.map((map) => Note.fromMap(map)).toList();
+    return rows.map(Note.fromMap).toList();
   }
 
-  Future<int> updateNote(Note note) async {
-    final db = await instance.database;
+  Future<void> save(Note note) async {
+    final db = await database;
 
-    return await db.update(
+    final data = note.toMap()..remove('id');
+
+    await db.insert(
       'notes',
-      note.toMap(),
-
-      where: "id = ?",
-
-      whereArgs: [note.id],
+      data,
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  Future<int> deleteNote(int id) async{
-    final db = await instance.database;
+  Future<void> delete(String cloudId, String uid) async {
+    final db = await database;
 
-    return await db.delete(
+    await db.delete(
       'notes',
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'cloudId = ? AND uid = ?',
+      whereArgs: [cloudId, uid],
     );
   }
 }

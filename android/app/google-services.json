@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "917005993637",
-    "project_id": "blocodenotasturmaa",
-    "storage_bucket": "blocodenotasturmaa.firebasestorage.app"
+    "project_number": "897295210500",
+    "project_id": "caderno-de-bolso",
+    "storage_bucket": "caderno-de-bolso.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:917005993637:android:93d6c01000c35761d0af4c",
+        "mobilesdk_app_id": "1:897295210500:android:933e791baed30a1cf93d51",
         "android_client_info": {
           "package_name": "com.example.bloco_de_nota_turma_a"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB9LiQ3tI8ioFn2SCtyLWo10RZcxgRFvxg"
+          "current_key": "AIzaSyCpe1e9HFvaXKgq7DfJ6EZP6hrWrqsZP1E"
         }
       ],
       "services": {

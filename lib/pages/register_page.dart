@@ -94,7 +94,7 @@ class _RegisterPageState extends State<RegisterPage> {
             SizedBox(height: 10),
             Text(
               "Crie sua conta para começar",
-              style: TextStyle(color: Color(0xff777717f)),
+              style: TextStyle(color: Color(0xff77717f)),
             ),
             SizedBox(height: 35),
             Text(
