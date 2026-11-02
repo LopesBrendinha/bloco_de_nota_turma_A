@@ -47,27 +47,27 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCk0m7dk83-AKuadqkdyVJ1yK3-apqVd-o',
-    appId: '1:917005993637:web:17da01cb3f1d22abd0af4c',
-    messagingSenderId: '917005993637',
-    projectId: 'blocodenotasturmaa',
-    authDomain: 'blocodenotasturmaa.firebaseapp.com',
-    storageBucket: 'blocodenotasturmaa.firebasestorage.app',
+    apiKey: 'AIzaSyDGaJr8a9CgqPdGp1CmTWUNHd04NcFmRsg',
+    appId: '1:897295210500:web:2b8690d4e3476c50f93d51',
+    messagingSenderId: '897295210500',
+    projectId: 'caderno-de-bolso',
+    authDomain: 'caderno-de-bolso.firebaseapp.com',
+    storageBucket: 'caderno-de-bolso.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB9LiQ3tI8ioFn2SCtyLWo10RZcxgRFvxg',
-    appId: '1:917005993637:android:93d6c01000c35761d0af4c',
-    messagingSenderId: '917005993637',
-    projectId: 'blocodenotasturmaa',
-    storageBucket: 'blocodenotasturmaa.firebasestorage.app',
+    apiKey: 'AIzaSyCpe1e9HFvaXKgq7DfJ6EZP6hrWrqsZP1E',
+    appId: '1:897295210500:android:933e791baed30a1cf93d51',
+    messagingSenderId: '897295210500',
+    projectId: 'caderno-de-bolso',
+    storageBucket: 'caderno-de-bolso.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBUedL-Dhe4iqkDrF6WLOSWEj7QtdO9WR8',
-    appId: '1:917005993637:ios:fdac2f5cae22016bd0af4c',
-    messagingSenderId: '917005993637',
-    projectId: 'blocodenotasturmaa',
-    storageBucket: 'blocodenotasturmaa.firebasestorage.app',
+    apiKey: 'AIzaSyA6P8dhQs3Jc0aIpvzMGEbL3sHffoWoSoc',
+    appId: '1:897295210500:ios:c04c96434ead4646f93d51',
+    messagingSenderId: '897295210500',
+    projectId: 'caderno-de-bolso',
+    storageBucket: 'caderno-de-bolso.firebasestorage.app',
     iosBundleId: 'com.example.blocoDeNotaTurmaa',
   );
 }

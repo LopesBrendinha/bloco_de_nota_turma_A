@@ -1,8 +1,9 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../database/database_helper.dart';
 import '../models/note.dart';
+import '../services/notes_service.dart';
 
 class NoteFormPage extends StatefulWidget {
   final Note? note;
@@ -14,43 +15,47 @@ class NoteFormPage extends StatefulWidget {
 }
 
 class _NoteFormPageState extends State<NoteFormPage> {
-  final titleController = TextEditingController();
+  final title = TextEditingController();
+  final content = TextEditingController();
+  final category = TextEditingController();
 
-  final contentController = TextEditingController();
+  bool pinned = false;
+  bool saving = false;
 
-  final database = DatabaseHelper.instance;
-
-  bool get isEditing => widget.note != null;
+  bool get editing => widget.note != null;
 
   @override
   void initState() {
     super.initState();
 
-    if (isEditing) {
-      titleController.text = widget.note!.title;
+    final n = widget.note;
 
-      contentController.text = widget.note!.content;
+    if (n != null) {
+      title.text = n.title;
+      content.text = n.content;
+      category.text = n.category;
+      pinned = n.pinned;
+    } else {
+      category.text = 'Geral';
     }
   }
 
-  Future<void> saveNote() async {
-    // Pegamos o usuário atualmente autenticado.
+  Future<void> save() async {
     final user = FirebaseAuth.instance.currentUser;
 
-    // Sem usuário não podemos salvar.
     if (user == null) return;
 
-    // Pegamos os valores digitados.
-    final title = titleController.text.trim();
-
-    final content = contentController.text.trim();
-
-    // Verificamos se existe conteúdo.
-    if (content.isEmpty) {
+    if (content.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Escreva algum conteúdo antes de salvar.'),
+        ),
+      );
       return;
     }
 
-    // Criamos a data da alteração.
+    setState(() => saving = true);
+
     final now = DateTime.now();
 
     final date =
@@ -60,44 +65,50 @@ class _NoteFormPageState extends State<NoteFormPage> {
         '${now.hour.toString().padLeft(2, '0')}:'
         '${now.minute.toString().padLeft(2, '0')}';
 
-    // Criamos um objeto Note.
-    //
-    // Se estamos editando:
-    //     widget.note?.id
-    // mantém o ID existente.
-    //
-    // Se estamos criando:
-    //     o ID será null.
+    final old = widget.note;
+
     final note = Note(
-      id: widget.note?.id,
+      id: old?.id,
+      cloudId: old?.cloudId ?? '',
       uid: user.uid,
-      title: title,
-      content: content,
+      title: title.text.trim(),
+      content: content.text.trim(),
+      category: category.text.trim().isEmpty
+          ? 'Geral'
+          : category.text.trim(),
       date: date,
+      pinned: pinned,
     );
 
-    // Verificamos se estamos criando
-    // ou editando uma nota.
-    if (isEditing) {
-      // UPDATE
-      await database.updateNote(note);
-    } else {
-      // INSERT
-      await database.insertNote(note);
-    }
+    try {
+      await NotesService().save(note);
 
-    // Depois de salvar,
-    // voltamos para a tela anterior.
-    if (mounted) {
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e, stackTrace) {
+      debugPrint('ERRO AO SALVAR NOTA: $e');
+      debugPrint('DETALHES: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao salvar: $e'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => saving = false);
+      }
     }
   }
 
   @override
   void dispose() {
-    titleController.dispose();
-    contentController.dispose();
-
+    title.dispose();
+    content.dispose();
+    category.dispose();
     super.dispose();
   }
 
@@ -105,74 +116,65 @@ class _NoteFormPageState extends State<NoteFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          isEditing ? 'Editar nota' : 'Nova nota',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-
+        title: Text(editing ? 'Editar anotação' : 'Nova anotação'),
         actions: [
           IconButton(
-            onPressed: saveNote,
-            icon: const Icon(Icons.check_rounded),
+            onPressed: saving ? null : save,
+            icon: const Icon(Icons.check),
           ),
-
-          const SizedBox(width: 8),
         ],
       ),
-
-      body: Padding(
-        padding: const EdgeInsets.all(22),
-
-        child: Column(
-          children: [
-            TextField(
-              controller: titleController,
-
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF292333),
-              ),
-
-              decoration: const InputDecoration(
-                hintText: 'Título',
-                border: InputBorder.none,
-                filled: false,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4),
-              ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          TextField(
+            controller: title,
+            decoration: const InputDecoration(
+              labelText: 'Título',
             ),
+          ),
 
-            const Divider(color: Color(0xFFE4DFEA)),
+          const SizedBox(height: 12),
 
-            Expanded(
-              child: TextField(
-                controller: contentController,
-
-                maxLines: null,
-
-                expands: true,
-
-                textAlignVertical: TextAlignVertical.top,
-
-                style: const TextStyle(
-                  fontSize: 17,
-                  height: 1.5,
-                  color: Color(0xFF40394A),
-                ),
-
-                decoration: const InputDecoration(
-                  hintText: 'Comece a escrever...',
-                  border: InputBorder.none,
-                  filled: false,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 15,
-                  ),
-                ),
-              ),
+          TextField(
+            controller: category,
+            decoration: const InputDecoration(
+              labelText: 'Categoria',
+              hintText: 'Ex.: Estudos, Trabalho, Pessoal',
             ),
-          ],
-        ),
+          ),
+
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: pinned,
+            title: const Text('Fixar no início da lista'),
+            onChanged: (v) {
+              setState(() => pinned = v);
+            },
+          ),
+
+          const SizedBox(height: 8),
+
+          TextField(
+            controller: content,
+            minLines: 10,
+            maxLines: 18,
+            decoration: const InputDecoration(
+              alignLabelWithHint: true,
+              labelText: 'Anotação',
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          FilledButton.icon(
+            onPressed: saving ? null : save,
+            icon: const Icon(Icons.cloud_done_outlined),
+            label: Text(
+              saving ? 'Salvando...' : 'Salvar anotação',
+            ),
+          ),
+        ],
       ),
     );
   }

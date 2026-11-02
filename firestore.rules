@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /notes/{noteId} {
+      // Só o dono da nota pode consultar ou apagar.
+      allow read, delete: if request.auth != null
+        && request.auth.uid == resource.data.uid;
+
+      // Na criação, o uid gravado deve ser o usuário conectado.
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.uid;
+
+      // Na edição, não pode trocar o dono da anotação.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.uid
+        && request.auth.uid == request.resource.data.uid;
+    }
+  }
+}
