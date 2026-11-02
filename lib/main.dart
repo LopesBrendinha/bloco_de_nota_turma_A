@@ -1,5 +1,8 @@
 import 'package:bloco_de_nota_turma_a/firebase_options.dart';
 import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
+import 'package:bloco_de_nota_turma_a/pages/notes_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -9,6 +12,14 @@ void main() async{
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // O SQLite é o único armazenamento local do app. O cache offline do próprio
+  // Firestore é desligado para que a sincronização (NotesRepository) seja a
+  // única regra de quando algo é considerado "enviado".
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: false,
+  );
+
   runApp(const MyApp());
 }
 
@@ -62,7 +73,10 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginPage(),
+      // Quem já fez login continua logado ao reabrir o app.
+      home: FirebaseAuth.instance.currentUser == null
+          ? const LoginPage()
+          : const NotesPage(),
     );
   }
 }

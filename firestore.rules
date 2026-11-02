@@ -1,0 +1,35 @@
+rules_version = '2';
+
+// Regras de segurança do Cloud Firestore.
+//
+// Estrutura: users/{userId}/notes/{noteId}
+// Um usuário autenticado só pode ler e gravar documentos dentro do próprio
+// users/{userId}. Qualquer outro caminho é negado.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId}/notes/{noteId} {
+      // Ler (get e list) apenas as próprias notas.
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Criar/atualizar: dono autenticado + dados válidos.
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.content is string
+        && request.resource.data.content.size() <= 20000
+        && request.resource.data.category is string
+        && request.resource.data.category.size() <= 30;
+
+      // Excluir apenas as próprias notas.
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Todo o resto fica bloqueado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
