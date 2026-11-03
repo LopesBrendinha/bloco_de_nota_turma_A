@@ -1,3 +1,5 @@
+const defaultCategories = ['Estudos', 'Trabalho', 'Pessoal'];
+
 class Note {
   final String id;
   final String uid;
@@ -25,6 +27,7 @@ class Note {
     String? title,
     String? content,
     String? category,
+    bool clearCategory = false,
     int? updatedAt,
     int? deletedAt,
     String? syncStatus,
@@ -34,7 +37,7 @@ class Note {
       uid: uid,
       title: title ?? this.title,
       content: content ?? this.content,
-      category: category ?? this.category,
+      category: clearCategory ? null : (category ?? this.category),
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
