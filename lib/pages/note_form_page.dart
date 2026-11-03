@@ -19,6 +19,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   final repository = NoteRepository();
 
+  List<String> categories = [];
+  String? category;
+
   bool get isEditing => widget.note != null;
 
   @override
@@ -29,7 +32,59 @@ class _NoteFormPageState extends State<NoteFormPage> {
       titleController.text = widget.note!.title;
 
       contentController.text = widget.note!.content;
+      category = widget.note!.category;
     }
+    loadCategories();
+  }
+
+  Future<void> loadCategories() async {
+    final result = await repository.getCategories();
+    if (mounted) {
+      setState(() {
+        categories = result;
+      });
+    }
+  }
+
+  Future<void> newCategory() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nova categoria'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(hintText: 'Nome da categoria'),
+          onSubmitted: (value) => Navigator.pop(context, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Criar'),
+          ),
+        ],
+      ),
+    );
+
+    final trimmed = name?.trim() ?? '';
+    if (trimmed.isEmpty) return;
+
+    final match = categories.firstWhere(
+      (c) => c.toLowerCase() == trimmed.toLowerCase(),
+      orElse: () => trimmed,
+    );
+    setState(() {
+      if (!categories.contains(match)) {
+        categories = [...categories, match];
+      }
+      category = match;
+    });
   }
 
   Future<void> saveNote() async {
@@ -41,9 +96,18 @@ class _NoteFormPageState extends State<NoteFormPage> {
     }
 
     if (isEditing) {
-      await repository.update(widget.note!, title: title, content: content);
+      await repository.update(
+        widget.note!,
+        title: title,
+        content: content,
+        category: category,
+      );
     } else {
-      await repository.create(title: title, content: content);
+      await repository.create(
+        title: title,
+        content: content,
+        category: category,
+      );
     }
 
     if (mounted) {
@@ -98,6 +162,31 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 filled: false,
                 contentPadding: EdgeInsets.symmetric(horizontal: 4),
               ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                ChoiceChip(
+                  label: const Text('Sem categoria'),
+                  selected: category == null,
+                  onSelected: (_) => setState(() => category = null),
+                ),
+                for (final c in categories)
+                  ChoiceChip(
+                    label: Text(c),
+                    selected: c.toLowerCase() == category?.toLowerCase(),
+                    onSelected: (_) => setState(() => category = c),
+                  ),
+                ActionChip(
+                  avatar: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Nova categoria'),
+                  onPressed: newCategory,
+                ),
+              ],
             ),
 
             const Divider(color: Color(0xFFE4DFEA)),
