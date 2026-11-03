@@ -57,4 +57,17 @@ void main() {
     expect(id, matches(RegExp(r'^[A-Za-z0-9]{20}$')));
     expect(newNoteId(), isNot(id));
   });
+
+  test('toFirestore não leva id nem sync_status; fromFirestore volta synced', () {
+    final note = sample(category: 'Estudos');
+    final data = note.toFirestore();
+    expect(data.containsKey('id'), isFalse);
+    expect(data.containsKey('sync_status'), isFalse);
+    expect(data['uid'], 'user-1');
+
+    final back = Note.fromFirestore({...data, 'id': note.id});
+    expect(back.id, 'abc123');
+    expect(back.category, 'Estudos');
+    expect(back.syncStatus, 'synced');
+  });
 }

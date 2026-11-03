@@ -69,4 +69,13 @@ class Note {
       syncStatus: map['sync_status'],
     );
   }
+
+  // Documento do Firestore: as mesmas colunas do SQLite, menos id (é o ID do
+  // documento) e sync_status (só existe no aparelho).
+  Map<String, dynamic> toFirestore() =>
+      toMap()..remove('id')..remove('sync_status');
+
+  // data precisa ter o 'id' (o FirestoreService coloca o doc.id no mapa).
+  factory Note.fromFirestore(Map<String, dynamic> data) =>
+      Note.fromMap({...data, 'sync_status': 'synced'});
 }
