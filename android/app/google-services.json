@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "917005993637",
-    "project_id": "blocodenotasturmaa",
-    "storage_bucket": "blocodenotasturmaa.firebasestorage.app"
+    "project_number": "322328601986",
+    "project_id": "bloco-notas-f7341",
+    "storage_bucket": "bloco-notas-f7341.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:917005993637:android:93d6c01000c35761d0af4c",
+        "mobilesdk_app_id": "1:322328601986:android:f4f3b2a3a5fbda136f1b9b",
         "android_client_info": {
           "package_name": "com.example.bloco_de_nota_turma_a"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB9LiQ3tI8ioFn2SCtyLWo10RZcxgRFvxg"
+          "current_key": "AIzaSyDXhnoYOD3vO_ngjcJ9DaEb-b_8OAdswSs"
         }
       ],
       "services": {

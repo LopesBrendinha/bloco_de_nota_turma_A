@@ -1,30 +1,80 @@
-// This is a basic Flutter widget test.
+// Testes do modelo Note (não dependem do Firebase nem de dispositivo).
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Rode com: flutter test
 
-import 'package:flutter/material.dart';
+import 'package:bloco_de_nota_turma_a/models/note.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bloco_de_nota_turma_a/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('Note.create gera uma nota nova, fora da lixeira e não sincronizada', () {
+    final note = Note.create(
+      uid: 'u1',
+      title: 'Título',
+      content: 'Conteúdo',
+      category: 'Estudos',
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(note.id, isNotEmpty);
+    expect(note.uid, 'u1');
+    expect(note.deleted, isFalse);
+    expect(note.synced, isFalse);
+    expect(note.createdAt, note.updatedAt);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('toMap e fromMap preservam os dados (SQLite)', () {
+    final original = Note.create(
+      uid: 'u1',
+      title: 'Título',
+      content: 'Conteúdo',
+      category: 'Trabalho',
+    ).copyWith(synced: true);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    final copy = Note.fromMap(original.toMap());
+
+    expect(copy.id, original.id);
+    expect(copy.uid, original.uid);
+    expect(copy.title, original.title);
+    expect(copy.content, original.content);
+    expect(copy.category, original.category);
+    expect(copy.createdAt, original.createdAt);
+    expect(copy.updatedAt, original.updatedAt);
+    expect(copy.deleted, isFalse);
+    expect(copy.synced, isTrue);
+  });
+
+  test('toRemoteMap não envia o uid e fromRemote marca como sincronizada', () {
+    final original = Note.create(
+      uid: 'u1',
+      title: 'Título',
+      content: 'Conteúdo',
+      category: 'Pessoal',
+    );
+
+    final remoteMap = original.toRemoteMap();
+    expect(remoteMap.containsKey('uid'), isFalse);
+    expect(remoteMap['category'], 'Pessoal');
+
+    final copy = Note.fromRemote(original.id, 'u1', remoteMap);
+    expect(copy.id, original.id);
+    expect(copy.uid, 'u1');
+    expect(copy.title, 'Título');
+    expect(copy.synced, isTrue);
+  });
+
+  test('copyWith manda para a lixeira e restaura', () {
+    final note = Note.create(
+      uid: 'u1',
+      title: 'Título',
+      content: 'Conteúdo',
+      category: 'Pessoal',
+    );
+
+    final trashed = note.copyWith(deleted: true, deletedAt: 123);
+    expect(trashed.deleted, isTrue);
+    expect(trashed.deletedAt, 123);
+
+    final restored = trashed.copyWith(deleted: false, clearDeletedAt: true);
+    expect(restored.deleted, isFalse);
+    expect(restored.deletedAt, isNull);
   });
 }

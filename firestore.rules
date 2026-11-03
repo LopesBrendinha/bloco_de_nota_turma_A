@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // O usuário logado só pode acessar documentos do próprio uid.
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Garante o formato esperado da nota.
+    function validNote() {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'title', 'content', 'category',
+          'createdAt', 'updatedAt', 'deleted', 'deletedAt'
+        ])
+        && d.title is string && d.title.size() <= 300
+        && d.content is string && d.content.size() <= 100000
+        && d.category is string && d.category.size() > 0 && d.category.size() <= 50
+        && d.createdAt is number
+        && d.updatedAt is number
+        && d.deleted is bool
+        && (d.deletedAt == null || d.deletedAt is number);
+    }
+
+    // Notas: users/{uid}/notes/{noteId}
+    match /users/{userId}/notes/{noteId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validNote();
+    }
+
+    // Todo o resto fica bloqueado por padrão.
+  }
+}

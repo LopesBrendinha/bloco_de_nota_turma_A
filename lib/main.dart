@@ -1,5 +1,6 @@
 import 'package:bloco_de_nota_turma_a/firebase_options.dart';
 import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -9,6 +10,14 @@ void main() async{
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // O SQLite é o armazenamento local do app, então desligamos o cache
+  // offline do próprio Firestore. Assim há uma única cópia local (SQLite)
+  // e a sincronização fica previsível.
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: false,
+  );
+
   runApp(const MyApp());
 }
 
