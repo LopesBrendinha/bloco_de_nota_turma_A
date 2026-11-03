@@ -1,0 +1,57 @@
+name: Verificar aplicativo
+on:
+  push:
+    branches: [melhorias-bloco-notas, main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test tool/build_sqlite_web.dart
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --debug --output build/emulator-web --dart-define=USE_FIREBASE_EMULATORS=true
+  firebase-and-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: npm ci
+      - run: npm run test:rules
+      - run: flutter pub get && flutter build web --debug --output build/emulator-web --dart-define=USE_FIREBASE_EMULATORS=true
+      - run: npx playwright install chrome
+      - name: Testar interface, SQLite e Firebase juntos
+        run: |
+          npm run emulators > /tmp/emulators.log 2>&1 &
+          node tool/serve-web.mjs build/emulator-web 8766 > /tmp/web.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fs http://127.0.0.1:4400/emulators > /dev/null; then break; fi
+            sleep 1
+          done
+          npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidencias-e-testes
+          path: |
+            docs/evidencias/
+            test-results/

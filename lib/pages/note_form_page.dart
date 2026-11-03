@@ -221,7 +221,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
               TextField(
                 controller: title,
                 maxLength: 200,
-                decoration: const InputDecoration(hintText: 'Título'),
+                decoration: const InputDecoration(labelText: 'Título'),
               ),
               const SizedBox(height: 8),
               Row(
@@ -279,6 +279,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
                   maxLines: null,
                   textAlignVertical: TextAlignVertical.top,
                   decoration: const InputDecoration(
+                    labelText: 'Conteúdo',
                     hintText: 'Comece a escrever…',
                   ),
                 ),

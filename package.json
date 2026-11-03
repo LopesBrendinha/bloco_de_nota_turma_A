@@ -1,0 +1,20 @@
+{
+  "name": "bloco-notas-verificacao",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "emulators": "firebase emulators:start --project demo-bloco-notas --only auth,firestore",
+    "test:rules": "firebase emulators:exec --project demo-bloco-notas --only firestore \"node --test test/firestore_rules.test.mjs\"",
+    "test:e2e": "playwright test",
+    "serve:web": "node tool/serve-web.mjs build/emulator-web 8766"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.64.1",
+    "firebase": "^12.0.0",
+    "firebase-tools": "^15.0.0"
+  }
+}

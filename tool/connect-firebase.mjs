@@ -1,0 +1,13 @@
+import {spawnSync} from 'node:child_process';
+import {createInterface} from 'node:readline/promises';
+import {fileURLToPath} from 'node:url';
+const cli = fileURLToPath(new URL('../node_modules/firebase-tools/lib/bin/firebase.js', import.meta.url));
+const terminal = createInterface({input:process.stdin, output:process.stdout});
+const run = args => spawnSync(process.execPath, [cli,...args], {stdio:'inherit'});
+console.log('CONEXAO COM FIREBASE\nAbra o endereco oficial indicado abaixo e entre na sua conta Google.\nCole qualquer codigo SOMENTE nesta janela, nunca no chat.\n');
+run(['login']);
+const code = await terminal.question('\nSe recebeu um codigo, cole aqui. Se o login ja terminou, pressione Enter: ');
+if (code.trim()) run(['login',code.trim()]);
+run(['login:list']);
+await terminal.question('\nSe sua conta apareceu, avise no chat: Firebase conectado. Enter para fechar.');
+terminal.close();

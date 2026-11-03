@@ -11,7 +11,11 @@ class DatabaseHelper {
   final String? databasePath;
   Future<Database>? _opening;
   DatabaseHelper({this.factory, this.databasePath});
-  Future<Database> get database => _opening ??= _open();
+  Future<Database> get database =>
+      _opening ??= _open().catchError((Object error, StackTrace stack) {
+        _opening = null;
+        Error.throwWithStackTrace(error, stack);
+      });
   Future<Database> _open() async {
     final f = factory ?? databaseFactory;
     final path =
@@ -52,7 +56,9 @@ class DatabaseHelper {
                 {
                   'cloudId': const Uuid().v4(),
                   'revision': const Uuid().v4(),
-                  'updatedAt': DateTime.now().toUtc().millisecondsSinceEpoch,
+                  'updatedAt': _legacyDate(
+                    row['date'] as String,
+                  ).millisecondsSinceEpoch,
                 },
                 where: 'id = ?',
                 whereArgs: [row['id']],
@@ -66,6 +72,15 @@ class DatabaseHelper {
         },
       ),
     );
+  }
+
+  DateTime _legacyDate(String text) {
+    final match = RegExp(
+      r'^(\d{2})/(\d{2})/(\d{4}) (\d{2}):(\d{2})$',
+    ).firstMatch(text);
+    if (match == null) return DateTime.now().toUtc();
+    final n = List.generate(5, (i) => int.parse(match.group(i + 1)!));
+    return DateTime(n[2], n[1], n[0], n[3], n[4]).toUtc();
   }
 
   Future<void> _createExtra(Database db) async {
