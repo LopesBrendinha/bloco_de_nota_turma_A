@@ -1,4 +1,3 @@
-import 'package:bloco_de_nota_turma_a/pages/notes_page.dart';
 import 'package:bloco_de_nota_turma_a/pages/register_page.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -31,15 +30,10 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final user = await authService.login(
         emailController.text.trim(),
-        passwordController.text.trim(),
+        passwordController.text,
       );
 
-      if (user != null && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => NotesPage()),
-        );
-      }
+      if (user == null && mounted) showMessage('Não foi possível entrar.');
     } catch (e) {
       showMessage("Não foi possível realizar o login");
     }
@@ -185,7 +179,7 @@ class _LoginPageState extends State<LoginPage> {
                         MaterialPageRoute(builder: (_) => RegisterPage()),
                       );
                     },
-                    child: Text("Ainda não possui uma conta? Cadastre-se", ),
+                    child: Text("Ainda não possui uma conta? Cadastre-se"),
                   ),
                 ),
               ],

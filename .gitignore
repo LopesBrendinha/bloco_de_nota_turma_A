@@ -32,6 +32,20 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/.tools/
+/config/*.local.json
+/android/app/google-services.json
+/ios/Runner/GoogleService-Info.plist
+/web/sqflite_sw.js.deps
+/web/sqflite_sw.js.map
+/node_modules/
+/firebase-debug.log
+/firestore-debug.log
+/ui-debug.log
+/database-debug.log
+/firebase-export-*/
+/test-results/
+/playwright-report/
 
 # Symbolication related
 app.*.symbols
@@ -43,3 +57,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local project selection and private verification output
+/.firebaserc
+/docs/evidencias/resultado-*.json
+/docs/evidencias/06-firestore-*.png

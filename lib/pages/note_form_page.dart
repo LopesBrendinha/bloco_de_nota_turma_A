@@ -1,179 +1,293 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-import '../database/database_helper.dart';
 import '../models/note.dart';
+import '../repositories/notes_repository.dart';
+import '../services/reminder_service.dart';
 
 class NoteFormPage extends StatefulWidget {
   final Note? note;
-
-  const NoteFormPage({super.key, this.note});
-
+  final NotesRepository repository;
+  final ReminderService reminders;
+  const NoteFormPage({
+    super.key,
+    this.note,
+    required this.repository,
+    required this.reminders,
+  });
   @override
   State<NoteFormPage> createState() => _NoteFormPageState();
 }
 
 class _NoteFormPageState extends State<NoteFormPage> {
-  final titleController = TextEditingController();
-
-  final contentController = TextEditingController();
-
-  final database = DatabaseHelper.instance;
-
-  bool get isEditing => widget.note != null;
-
+  late final TextEditingController title, content;
+  late String category;
+  DateTime? reminder;
+  bool saving = false;
+  String? error;
   @override
   void initState() {
     super.initState();
+    title = TextEditingController(text: widget.note?.title ?? '');
+    content = TextEditingController(text: widget.note?.content ?? '');
+    category = widget.note?.category ?? 'Pessoal';
+    reminder = widget.note?.reminderAt?.toLocal();
+  }
 
-    if (isEditing) {
-      titleController.text = widget.note!.title;
-
-      contentController.text = widget.note!.content;
+  Future<void> addCategory() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nova categoria'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 60,
+          decoration: const InputDecoration(labelText: 'Nome'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, controller.text.trim());
+              }
+            },
+            child: const Text('Criar'),
+          ),
+        ],
+      ),
+    );
+    // Dialog disposal is deferred until its closing animation has completed.
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    controller.dispose();
+    if (name == null || !mounted) return;
+    try {
+      await widget.repository.addCategory(name);
+      if (mounted) {
+        setState(
+          () => category = widget.repository.categories.firstWhere(
+            (c) => c.toLowerCase() == name.toLowerCase(),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => error = 'Não foi possível criar a categoria.');
+      }
     }
   }
 
-  Future<void> saveNote() async {
-    // Pegamos o usuário atualmente autenticado.
-    final user = FirebaseAuth.instance.currentUser;
-
-    // Sem usuário não podemos salvar.
-    if (user == null) return;
-
-    // Pegamos os valores digitados.
-    final title = titleController.text.trim();
-
-    final content = contentController.text.trim();
-
-    // Verificamos se existe conteúdo.
-    if (content.isEmpty) {
+  Future<void> pickReminder() async {
+    final now = DateTime.now();
+    final initial = reminder != null && reminder!.isAfter(now)
+        ? reminder!
+        : now;
+    final day = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (day == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (time == null || !mounted) return;
+    final selected = DateTime(
+      day.year,
+      day.month,
+      day.day,
+      time.hour,
+      time.minute,
+    );
+    if (!selected.isAfter(DateTime.now())) {
+      setState(() => error = 'Escolha uma data e um horário futuros.');
       return;
     }
+    setState(() {
+      reminder = selected;
+      error = null;
+    });
+  }
 
-    // Criamos a data da alteração.
-    final now = DateTime.now();
-
-    final date =
-        '${now.day.toString().padLeft(2, '0')}/'
-        '${now.month.toString().padLeft(2, '0')}/'
-        '${now.year} '
-        '${now.hour.toString().padLeft(2, '0')}:'
-        '${now.minute.toString().padLeft(2, '0')}';
-
-    // Criamos um objeto Note.
-    //
-    // Se estamos editando:
-    //     widget.note?.id
-    // mantém o ID existente.
-    //
-    // Se estamos criando:
-    //     o ID será null.
-    final note = Note(
-      id: widget.note?.id,
-      uid: user.uid,
-      title: title,
-      content: content,
-      date: date,
-    );
-
-    // Verificamos se estamos criando
-    // ou editando uma nota.
-    if (isEditing) {
-      // UPDATE
-      await database.updateNote(note);
-    } else {
-      // INSERT
-      await database.insertNote(note);
+  Future<void> save() async {
+    if (saving) return;
+    if (content.text.trim().isEmpty) {
+      setState(() => error = 'Escreva o conteúdo da nota.');
+      return;
     }
-
-    // Depois de salvar,
-    // voltamos para a tela anterior.
-    if (mounted) {
+    if (title.text.trim().length > 200 || content.text.trim().length > 100000) {
+      setState(
+        () => error = 'Limite: 200 caracteres no título e 100.000 no conteúdo.',
+      );
+      return;
+    }
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      final n =
+          widget.note?.edit(
+            title: title.text.trim(),
+            content: content.text.trim(),
+            category: category,
+            reminderAt: reminder?.toUtc(),
+            clearReminder: reminder == null,
+          ) ??
+          Note(
+            uid: widget.repository.uid,
+            title: title.text.trim(),
+            content: content.text.trim(),
+            category: category,
+            reminderAt: reminder?.toUtc(),
+          );
+      await widget.repository.save(n);
+      bool permission = true;
+      if (reminder != null && reminder!.isAfter(DateTime.now())) {
+        try {
+          permission = await widget.reminders.requestPermission();
+        } catch (_) {
+          permission = false;
+        }
+        try {
+          await widget.reminders.update(widget.repository.notes);
+        } catch (_) {
+          permission = false;
+        }
+      }
+      if (!mounted) return;
+      if (!permission) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Nota salva. Ative as notificações nas configurações para receber alertas fora do aplicativo.',
+            ),
+          ),
+        );
+      }
       Navigator.pop(context);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          saving = false;
+          error =
+              'Não foi possível salvar localmente. Seu texto continua aqui.';
+        });
+      }
     }
   }
 
   @override
   void dispose() {
-    titleController.dispose();
-    contentController.dispose();
-
+    title.dispose();
+    content.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isEditing ? 'Editar nota' : 'Nova nota',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: Text(widget.note == null ? 'Nova nota' : 'Editar nota'),
+      actions: [
+        TextButton.icon(
+          onPressed: saving ? null : save,
+          icon: const Icon(Icons.check),
+          label: Text(saving ? 'Salvando…' : 'Salvar'),
         ),
-
-        actions: [
-          IconButton(
-            onPressed: saveNote,
-            icon: const Icon(Icons.check_rounded),
-          ),
-
-          const SizedBox(width: 8),
-        ],
-      ),
-
-      body: Padding(
-        padding: const EdgeInsets.all(22),
-
-        child: Column(
-          children: [
-            TextField(
-              controller: titleController,
-
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF292333),
-              ),
-
-              decoration: const InputDecoration(
-                hintText: 'Título',
-                border: InputBorder.none,
-                filled: false,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4),
-              ),
-            ),
-
-            const Divider(color: Color(0xFFE4DFEA)),
-
-            Expanded(
-              child: TextField(
-                controller: contentController,
-
-                maxLines: null,
-
-                expands: true,
-
-                textAlignVertical: TextAlignVertical.top,
-
-                style: const TextStyle(
-                  fontSize: 17,
-                  height: 1.5,
-                  color: Color(0xFF40394A),
+      ],
+    ),
+    body: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 900),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ),
-
-                decoration: const InputDecoration(
-                  hintText: 'Comece a escrever...',
-                  border: InputBorder.none,
-                  filled: false,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 15,
+              TextField(
+                controller: title,
+                maxLength: 200,
+                decoration: const InputDecoration(labelText: 'Título'),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: category,
+                      key: ValueKey(category),
+                      decoration: const InputDecoration(labelText: 'Categoria'),
+                      items: widget.repository.categories
+                          .map(
+                            (c) => DropdownMenuItem(value: c, child: Text(c)),
+                          )
+                          .toList(),
+                      onChanged: saving
+                          ? null
+                          : (v) => setState(() => category = v!),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Criar categoria',
+                    onPressed: saving ? null : addCategory,
+                    icon: const Icon(Icons.add_circle_outline),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: saving ? null : pickReminder,
+                      icon: const Icon(Icons.notification_add_outlined),
+                      label: Text(
+                        reminder == null
+                            ? 'Definir prazo e lembrete'
+                            : Note.formatDate(reminder!),
+                      ),
+                    ),
+                  ),
+                  if (reminder != null)
+                    IconButton(
+                      tooltip: 'Remover lembrete',
+                      onPressed: () => setState(() => reminder = null),
+                      icon: const Icon(Icons.close),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: TextField(
+                  controller: content,
+                  expands: true,
+                  minLines: null,
+                  maxLines: null,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: const InputDecoration(
+                    labelText: 'Conteúdo',
+                    hintText: 'Comece a escrever…',
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
