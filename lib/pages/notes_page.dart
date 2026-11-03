@@ -6,7 +6,6 @@ import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:bloco_de_nota_turma_a/widgets/note_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class NotesPage extends StatefulWidget {
   const NotesPage({super.key});
@@ -116,7 +115,7 @@ class _NotesPageState extends State<NotesPage> {
                         ),
                         child: Icon(
                           Icons.sticky_note_2_rounded,
-                          color: Color(0xffede5fa)
+                          color: Color(0xff6c4ab6)
                         )
                       ),
                       SizedBox(height: 25),
