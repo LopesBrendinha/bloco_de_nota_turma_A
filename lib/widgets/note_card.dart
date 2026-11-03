@@ -1,133 +1,77 @@
 import 'package:flutter/material.dart';
-
 import '../models/note.dart';
 
 class NoteCard extends StatelessWidget {
   final Note note;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
-
+  final VoidCallback onTap, onDelete, onArchive;
   const NoteCard({
     super.key,
     required this.note,
     required this.onTap,
     required this.onDelete,
+    required this.onArchive,
   });
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(
-        bottom: 14,
-      ),
-
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-
-      child: InkWell(
-        borderRadius:
-            BorderRadius.circular(22),
-        onTap: onTap,
-
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-
-                decoration: BoxDecoration(
-                  color:
-                      const Color(0xFFEDE5FA),
-                  borderRadius:
-                      BorderRadius.circular(15),
+  Widget build(BuildContext context) => Card(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    note.title.isEmpty ? 'Sem título' : note.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
-
-                child: const Icon(
-                  Icons.notes_rounded,
-                  color:
-                      Color(0xFF6C4AB6),
+                IconButton(
+                  tooltip: note.archived ? 'Desarquivar' : 'Arquivar',
+                  onPressed: onArchive,
+                  icon: Icon(
+                    note.archived
+                        ? Icons.unarchive_outlined
+                        : Icons.archive_outlined,
+                  ),
                 ),
-              ),
-
-              const SizedBox(width: 15),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-
-                  children: [
-                    Text(
-                      note.title.isEmpty
-                          ? 'Sem título'
-                          : note.title,
-                      maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
-
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight:
-                            FontWeight.bold,
-                        color:
-                            Color(0xFF292333),
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Text(
-                      note.content,
-                      maxLines: 2,
-                      overflow:
-                          TextOverflow.ellipsis,
-
-                      style: const TextStyle(
-                        color:
-                            Color(0xFF77717F),
-                        height: 1.4,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Text(
-                      note.date,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color:
-                            Color(0xFF9A94A1),
-                      ),
-                    ),
-                  ],
+                IconButton(
+                  tooltip: 'Excluir nota',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
                 ),
-              ),
-
-              IconButton(
-                onPressed: onDelete,
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color:
-                      Color(0xFFB45F6C),
+              ],
+            ),
+            Text(note.content, maxLines: 3, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              children: [
+                Text(
+                  note.category,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-              ),
-            ],
-          ),
+                Text(note.date),
+                if (note.reminderAt != null)
+                  Text('Lembrete: ${Note.formatDate(note.reminderAt!)}'),
+                Text(
+                  note.dirty ? 'Envio pendente' : 'Na nuvem',
+                  style: TextStyle(
+                    color: note.dirty ? Colors.brown : Colors.teal,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
