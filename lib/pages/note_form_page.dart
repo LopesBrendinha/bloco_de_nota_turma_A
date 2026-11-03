@@ -1,8 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../database/database_helper.dart';
 import '../models/note.dart';
+import '../repositories/note_repository.dart';
 
 class NoteFormPage extends StatefulWidget {
   final Note? note;
@@ -18,7 +17,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   final contentController = TextEditingController();
 
-  final database = DatabaseHelper.instance;
+  final repository = NoteRepository();
 
   bool get isEditing => widget.note != null;
 
@@ -34,60 +33,19 @@ class _NoteFormPageState extends State<NoteFormPage> {
   }
 
   Future<void> saveNote() async {
-    // Pegamos o usuário atualmente autenticado.
-    final user = FirebaseAuth.instance.currentUser;
-
-    // Sem usuário não podemos salvar.
-    if (user == null) return;
-
-    // Pegamos os valores digitados.
     final title = titleController.text.trim();
-
     final content = contentController.text.trim();
 
-    // Verificamos se existe conteúdo.
     if (content.isEmpty) {
       return;
     }
 
-    // Criamos a data da alteração.
-    final now = DateTime.now();
-
-    final date =
-        '${now.day.toString().padLeft(2, '0')}/'
-        '${now.month.toString().padLeft(2, '0')}/'
-        '${now.year} '
-        '${now.hour.toString().padLeft(2, '0')}:'
-        '${now.minute.toString().padLeft(2, '0')}';
-
-    // Criamos um objeto Note.
-    //
-    // Se estamos editando:
-    //     widget.note?.id
-    // mantém o ID existente.
-    //
-    // Se estamos criando:
-    //     o ID será null.
-    final note = Note(
-      id: widget.note?.id,
-      uid: user.uid,
-      title: title,
-      content: content,
-      date: date,
-    );
-
-    // Verificamos se estamos criando
-    // ou editando uma nota.
     if (isEditing) {
-      // UPDATE
-      await database.updateNote(note);
+      await repository.update(widget.note!, title: title, content: content);
     } else {
-      // INSERT
-      await database.insertNote(note);
+      await repository.create(title: title, content: content);
     }
 
-    // Depois de salvar,
-    // voltamos para a tela anterior.
     if (mounted) {
       Navigator.pop(context);
     }

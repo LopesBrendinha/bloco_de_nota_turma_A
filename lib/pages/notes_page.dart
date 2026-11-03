@@ -1,7 +1,7 @@
-import 'package:bloco_de_nota_turma_a/database/database_helper.dart';
 import 'package:bloco_de_nota_turma_a/models/note.dart';
 import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
 import 'package:bloco_de_nota_turma_a/pages/note_form_page.dart';
+import 'package:bloco_de_nota_turma_a/repositories/note_repository.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:bloco_de_nota_turma_a/widgets/note_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,7 +15,7 @@ class NotesPage extends StatefulWidget {
 }
 
 class _NotesPageState extends State<NotesPage> {
-  final DatabaseHelper database = DatabaseHelper.instance;
+  final NoteRepository repository = NoteRepository();
   final AuthService authService = AuthService();
 
   List<Note> notes = [];
@@ -26,9 +26,7 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   Future<void> loadNotes() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final result = await database.getNotes(user.uid);
+    final result = await repository.getNotes();
 
     if (mounted) {
       setState(() {
@@ -37,8 +35,8 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
-  Future<void> deleteNote(int id) async {
-    await database.deleteNote(id);
+  Future<void> deleteNote(Note note) async {
+    await repository.delete(note);
     await loadNotes();
     if (mounted) {
       ScaffoldMessenger.of(
@@ -136,7 +134,7 @@ class _NotesPageState extends State<NotesPage> {
                       return NoteCard(
                         note: note,
                         onTap: () => openEditNote(note),
-                        onDelete: () => deleteNote(note.id!),
+                        onDelete: () => deleteNote(note),
                       );
                     }
                   )
