@@ -22,7 +22,11 @@ class FirestoreService {
       _notes(uid).doc(id).delete().timeout(_timeout);
 
   Future<List<Note>> fetchAll(String uid) async {
-    final snapshot = await _notes(uid).get().timeout(_timeout);
+    // Sem o servidor, o get() padrão devolve o cache vazio, e a sincronização
+    // apagaria as notas synced achando que foram excluídas em outro aparelho.
+    final snapshot = await _notes(uid)
+        .get(const GetOptions(source: Source.server))
+        .timeout(_timeout);
 
     return snapshot.docs
         .map((doc) => Note.fromFirestore({...doc.data(), 'id': doc.id}))
