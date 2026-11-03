@@ -123,16 +123,42 @@ Os testes de navegador estão em `test/browser`. Para reproduzi-los, compile com
 
 ## Capturas de tela
 
-As imagens abaixo mostram somente a interface e conteúdo fictício de avaliação.
+### Firebase
 
-![Listagem de notas sincronizadas](docs/evidencias/01-notas-sincronizadas-firebase-real.png)
-![Pesquisa por conteúdo](docs/evidencias/02-pesquisa-firebase-real.png)
-![Notas arquivadas](docs/evidencias/03-arquivadas-firebase-real.png)
-![Recuperação em outra instalação](docs/evidencias/04-outra-instalacao-firebase-real.png)
-![Salvamento local sem conexão](docs/evidencias/05-fila-offline-firebase-real.png)
+#### Autenticação
 
-A captura do Console Firebase para a entrega deve ocultar identificadores de contas, projeto e documentos. Respostas JSON e relatórios com dados internos não fazem parte da documentação publicada.
+Usuário cadastrado no Firebase Authentication.
 
-## Desenvolvimento colaborativo
+![Usuário cadastrado no Firebase Authentication](docs/evidencias/firebase-autenticacao.png)
 
-Desenvolvimento realizado na branch `melhorias-bloco-notas` do fork, com commits por etapa e Pull Request direcionado à branch `main` do repositório original.
+#### Armazenamento das notas
+
+Nota armazenada no Cloud Firestore, com título, conteúdo, categoria e prazo de lembrete.
+
+![Nota armazenada no Cloud Firestore](docs/evidencias/firebase-nota-armazenada.png)
+
+### Funcionamento do aplicativo
+
+#### Nota sincronizada
+
+Listagem de uma nota com categoria, lembrete e confirmação de armazenamento na nuvem.
+
+![Nota sincronizada no aplicativo](docs/evidencias/aplicativo-nota-sincronizada.png)
+
+#### Cadastro de nota
+
+Formulário para preencher título, categoria e conteúdo.
+
+![Formulário de nova nota](docs/evidencias/aplicativo-nova-nota.png)
+
+#### Definição de lembrete
+
+Seleção da data para o prazo e o lembrete da nota.
+
+![Seleção da data do lembrete](docs/evidencias/aplicativo-definir-lembrete.png)
+
+#### Notas com lembretes
+
+Listagem das notas cadastradas, com suas categorias e datas de lembrete.
+
+![Notas cadastradas com lembretes](docs/evidencias/aplicativo-notas-com-lembrete.png)
