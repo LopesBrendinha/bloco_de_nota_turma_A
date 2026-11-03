@@ -1,5 +1,4 @@
 import 'package:bloco_de_nota_turma_a/models/note.dart';
-import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
 import 'package:bloco_de_nota_turma_a/pages/note_form_page.dart';
 import 'package:bloco_de_nota_turma_a/repositories/note_repository.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
@@ -47,12 +46,6 @@ class _NotesPageState extends State<NotesPage> {
 
   Future<void> logout() async {
     await authService.logout();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => LoginPage()),
-      (route) => false,
-    );
   }
 
   Future<void> openEditNote(Note note) async{

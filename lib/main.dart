@@ -1,5 +1,7 @@
 import 'package:bloco_de_nota_turma_a/firebase_options.dart';
 import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
+import 'package:bloco_de_nota_turma_a/pages/notes_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -62,7 +64,20 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginPage(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snapshot.hasData) {
+            return const NotesPage();
+          }
+          return const LoginPage();
+        },
+      ),
     );
   }
 }

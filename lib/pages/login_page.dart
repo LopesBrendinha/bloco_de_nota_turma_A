@@ -1,4 +1,3 @@
-import 'package:bloco_de_nota_turma_a/pages/notes_page.dart';
 import 'package:bloco_de_nota_turma_a/pages/register_page.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -29,17 +28,10 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final user = await authService.login(
+      await authService.login(
         emailController.text.trim(),
         passwordController.text.trim(),
       );
-
-      if (user != null && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => NotesPage()),
-        );
-      }
     } catch (e) {
       showMessage("Não foi possível realizar o login");
     }
