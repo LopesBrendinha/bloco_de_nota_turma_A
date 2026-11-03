@@ -1,10 +1,14 @@
+import 'package:bloco_de_nota_turma_a/database/web_database_factory_stub.dart'
+    if (dart.library.js_interop) 'package:bloco_de_nota_turma_a/database/web_database_factory.dart';
 import 'package:bloco_de_nota_turma_a/firebase_options.dart';
 import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
 import 'package:bloco_de_nota_turma_a/pages/notes_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +21,8 @@ void main() async{
   // escrita sem internet não falharia e subiria sozinha, sem passar pelo nosso
   // código.
   FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false);
+  // O sqflite não tem implementação web: no navegador, o SQLite roda em WASM.
+  if (kIsWeb) databaseFactory = webDatabaseFactory;
   runApp(const MyApp());
 }
 
