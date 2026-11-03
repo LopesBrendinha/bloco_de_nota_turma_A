@@ -17,8 +17,9 @@ async function createUser() {
       }),
     },
   );
-  assert.equal(response.status, 200, `Auth emulator: ${await response.text()}`);
-  return response.json();
+  const body = await response.json();
+  assert.equal(response.status, 200, `Auth emulator: ${JSON.stringify(body)}`);
+  return body;
 }
 
 async function main() {
@@ -51,8 +52,8 @@ async function main() {
   assert.equal(create.status, 200, `Create: ${await create.text()}`);
 
   const read = await fetch(documentUrl, { headers: ownerHeaders });
-  assert.equal(read.status, 200, `Read: ${await read.text()}`);
   const readDocument = await read.json();
+  assert.equal(read.status, 200, `Read: ${JSON.stringify(readDocument)}`);
   assert.equal(readDocument.fields.title.stringValue, 'Nota de integração');
   assert.equal(readDocument.fields.category.stringValue, 'Estudos');
 

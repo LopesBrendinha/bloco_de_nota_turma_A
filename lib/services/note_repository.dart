@@ -65,6 +65,7 @@ class NoteRepository {
           uid: saved.uid,
           title: saved.title,
           content: saved.content,
+          category: saved.category,
           date: saved.date,
           cloudId: cloudId,
           updatedAt: saved.updatedAt,

@@ -3,6 +3,7 @@ import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
 import 'package:bloco_de_nota_turma_a/pages/note_form_page.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:bloco_de_nota_turma_a/services/note_repository.dart';
+import 'package:bloco_de_nota_turma_a/services/note_search.dart';
 import 'package:bloco_de_nota_turma_a/services/note_sorting.dart';
 import 'package:bloco_de_nota_turma_a/widgets/note_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -116,15 +117,11 @@ class _NotesPageState extends State<NotesPage> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final sortedNotes = sortNotesByUpdatedAt(notes, newestFirst: newestFirst);
-    final filteredNotes = sortedNotes.where((note) {
-      final query = searchText.toLowerCase();
-      final matchesSearch =
-          note.title.toLowerCase().contains(query) ||
-          note.content.toLowerCase().contains(query);
-      final matchesCategory =
-          categoryFilter == 'Todas' || note.category == categoryFilter;
-      return matchesSearch && matchesCategory;
-    }).toList();
+    final filteredNotes = searchNotes(
+      sortedNotes,
+      query: searchText,
+      category: categoryFilter,
+    );
     final categories = {'Todas', ...notes.map((note) => note.category)}.toList()
       ..sort((a, b) {
         if (a == 'Todas') return -1;

@@ -1,4 +1,5 @@
 import 'package:bloco_de_nota_turma_a/models/note.dart';
+import 'package:bloco_de_nota_turma_a/services/note_search.dart';
 import 'package:bloco_de_nota_turma_a/services/note_sorting.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -60,5 +61,34 @@ void main() {
       sortNotesByUpdatedAt([older, newer], newestFirst: false).first.title,
       'Antiga',
     );
+  });
+
+  test('searches title or content and combines category filters', () {
+    final notes = [
+      Note(
+        uid: 'user-123',
+        title: 'Plano da semana',
+        content: 'Estudar Flutter',
+        category: 'Estudos',
+        date: '03/11/2026 10:00',
+        updatedAt: 100,
+      ),
+      Note(
+        uid: 'user-123',
+        title: 'Lista de tarefas',
+        content: 'Comprar café',
+        category: 'Pessoal',
+        date: '03/11/2026 11:00',
+        updatedAt: 200,
+      ),
+    ];
+
+    expect(
+      searchNotes(notes, query: 'FLUTTER').single.title,
+      'Plano da semana',
+    );
+    expect(searchNotes(notes, query: 'café').single.title, 'Lista de tarefas');
+    expect(searchNotes(notes, query: 'semana', category: 'Pessoal'), isEmpty);
+    expect(searchNotes(notes, category: 'Estudos').single.category, 'Estudos');
   });
 }

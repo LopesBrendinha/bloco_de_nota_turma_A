@@ -1,6 +1,8 @@
 import 'package:bloco_de_nota_turma_a/models/note.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -20,6 +22,16 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDB(String fileName) async {
+    if (kIsWeb) {
+      databaseFactory = databaseFactoryFfiWeb;
+      return openDatabase(
+        fileName,
+        version: 4,
+        onCreate: _createDB,
+        onUpgrade: _upgradeDB,
+      );
+    }
+
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
@@ -27,25 +39,27 @@ class DatabaseHelper {
       path,
       version: 4,
       onCreate: _createDB,
-      onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute('ALTER TABLE notes ADD COLUMN cloudId TEXT');
-          await db.execute(
-            'ALTER TABLE notes ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0',
-          );
-        }
-        if (oldVersion < 3) await _createPendingDeletions(db);
-        if (oldVersion < 4) {
-          await db.execute(
-            "ALTER TABLE notes ADD COLUMN category TEXT NOT NULL DEFAULT 'Geral'",
-          );
-          await _createCategories(db);
-        }
-        await db.execute(
-          'CREATE UNIQUE INDEX IF NOT EXISTS notes_uid_cloud_id '
-          'ON notes(uid, cloudId)',
-        );
-      },
+      onUpgrade: _upgradeDB,
+    );
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE notes ADD COLUMN cloudId TEXT');
+      await db.execute(
+        'ALTER TABLE notes ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0',
+      );
+    }
+    if (oldVersion < 3) await _createPendingDeletions(db);
+    if (oldVersion < 4) {
+      await db.execute(
+        "ALTER TABLE notes ADD COLUMN category TEXT NOT NULL DEFAULT 'Geral'",
+      );
+      await _createCategories(db);
+    }
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS notes_uid_cloud_id '
+      'ON notes(uid, cloudId)',
     );
   }
 
