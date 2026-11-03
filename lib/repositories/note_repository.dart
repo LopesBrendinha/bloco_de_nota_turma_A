@@ -99,6 +99,35 @@ class NoteRepository {
     unawaited(sync());
   }
 
+  Future<List<Note>> getTrash() => _database.getTrash(_uid);
+
+  Future<void> restore(Note note) async {
+    await _database.updateNote(
+      note.copyWith(
+        clearDeletedAt: true,
+        updatedAt: _now,
+        syncStatus: 'pending',
+      ),
+    );
+  }
+
+  // Não apaga a linha: se o aparelho estiver offline, a próxima sincronização
+  // baixaria a nota de novo do Firestore. A sincronização (2A) apaga na nuvem
+  // e depois aqui.
+  Future<void> deletePermanently(Note note) => _markPurge(note);
+
+  Future<void> emptyTrash() async {
+    for (final note in await getTrash()) {
+      await _markPurge(note);
+    }
+  }
+
+  Future<void> _markPurge(Note note) async {
+    await _database.updateNote(
+      note.copyWith(updatedAt: _now, syncStatus: 'pending_purge'),
+    );
+  }
+
   // Se já existe uma sincronização rodando, devolve a mesma, sem começar outra.
   Future<SyncResult> sync() =>
       _running ??= _sync().whenComplete(() => _running = null);

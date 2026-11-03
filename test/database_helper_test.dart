@@ -10,6 +10,7 @@ Note sample({
   int updatedAt = 2000,
   String? category,
   int? deletedAt,
+  String syncStatus = 'pending',
 }) => Note(
   id: id,
   uid: uid,
@@ -19,7 +20,7 @@ Note sample({
   createdAt: 1000,
   updatedAt: updatedAt,
   deletedAt: deletedAt,
-  syncStatus: 'pending',
+  syncStatus: syncStatus,
 );
 
 void main() {
@@ -159,5 +160,45 @@ void main() {
     );
 
     expect(await db.getCategories('user-1'), ['Estudos']);
+  });
+
+  test('getTrash devolve as excluídas, a excluída por último primeiro', () async {
+    await db.insertNote(sample(id: 'ativa'));
+    await db.insertNote(sample(id: 'antiga', deletedAt: 3000));
+    await db.insertNote(sample(id: 'recente', deletedAt: 5000));
+    await db.insertNote(sample(id: 'meio', deletedAt: 4000));
+    await db.insertNote(
+      sample(id: 'purge', deletedAt: 6000, syncStatus: 'pending_purge'),
+    );
+    await db.insertNote(sample(id: 'outro', uid: 'user-2', deletedAt: 7000));
+
+    final trash = await db.getTrash('user-1');
+
+    expect(trash.map((n) => n.id), ['recente', 'meio', 'antiga']);
+  });
+
+  test('nota pending_purge não aparece na lista nem na lixeira', () async {
+    await db.insertNote(sample(id: 'a'));
+    await db.insertNote(
+      sample(id: 'b', deletedAt: 3000, syncStatus: 'pending_purge'),
+    );
+
+    expect((await db.getNotes('user-1')).map((n) => n.id), ['a']);
+    expect(await db.getTrash('user-1'), isEmpty);
+  });
+
+  test('restaurar com clearDeletedAt volta a nota para a lista', () async {
+    final trashed = sample(id: 'a', deletedAt: 3000);
+    await db.insertNote(trashed);
+    expect(await db.getNotes('user-1'), isEmpty);
+
+    await db.updateNote(
+      trashed.copyWith(clearDeletedAt: true, updatedAt: 4000),
+    );
+
+    final restored = (await db.getNotes('user-1')).single;
+    expect(restored.id, 'a');
+    expect(restored.deletedAt, isNull);
+    expect(await db.getTrash('user-1'), isEmpty);
   });
 }

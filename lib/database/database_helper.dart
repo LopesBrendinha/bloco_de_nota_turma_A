@@ -78,6 +78,19 @@ class DatabaseHelper {
     return result.map((row) => row['category'] as String).toList();
   }
 
+  Future<List<Note>> getTrash(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "notes",
+      where: "uid = ? AND deleted_at IS NOT NULL AND sync_status != 'pending_purge'",
+      whereArgs: [uid],
+      orderBy: "deleted_at DESC",
+    );
+
+    return result.map((map) => Note.fromMap(map)).toList();
+  }
+
   Future<int> updateNote(Note note) async {
     final db = await instance.database;
 
