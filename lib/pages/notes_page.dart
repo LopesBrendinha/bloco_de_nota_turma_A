@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bloco_de_nota_turma_a/models/note.dart';
 import 'package:bloco_de_nota_turma_a/pages/note_form_page.dart';
+import 'package:bloco_de_nota_turma_a/pages/trash_page.dart';
 import 'package:bloco_de_nota_turma_a/repositories/note_filter.dart';
 import 'package:bloco_de_nota_turma_a/repositories/note_repository.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
@@ -102,12 +103,33 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
   Future<void> deleteNote(Note note) async {
     await repository.delete(note);
     await loadNotes();
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Nota deletada com sucesso!")));
-    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Nota movida para a lixeira"),
+        // Com action, a SnackBar fica na tela para sempre se persist não for false.
+        persist: false,
+        action: SnackBarAction(
+          label: "Desfazer",
+          onPressed: () async {
+            await repository.restore(note);
+            await loadNotes();
+          },
+        ),
+      ),
+    );
     unawaited(runSync());
+  }
+
+  Future<void> openTrash() async {
+    // Sem isso, o "Desfazer" iria junto para a lixeira e poderia ressuscitar
+    // uma nota que o usuário acabou de excluir de vez.
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TrashPage()),
+    );
+    await loadNotes();
   }
 
   Future<void> logout() async {
@@ -141,6 +163,11 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
       appBar: AppBar(
         title: Text("Minhas notas", style: TextStyle(fontWeight:FontWeight.bold )),
         actions:[
+          IconButton(
+            tooltip: "Lixeira",
+            onPressed: openTrash,
+            icon: Icon(Icons.delete_outline_rounded),
+          ),
           IconButton(
             tooltip: "Sair",
             onPressed: logout,

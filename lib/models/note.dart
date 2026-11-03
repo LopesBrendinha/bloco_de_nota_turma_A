@@ -30,6 +30,7 @@ class Note {
     bool clearCategory = false,
     int? updatedAt,
     int? deletedAt,
+    bool clearDeletedAt = false,
     String? syncStatus,
   }) {
     return Note(
@@ -40,7 +41,7 @@ class Note {
       category: clearCategory ? null : (category ?? this.category),
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      deletedAt: deletedAt ?? this.deletedAt,
+      deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
       syncStatus: syncStatus ?? this.syncStatus,
     );
   }
