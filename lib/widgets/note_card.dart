@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../models/note.dart';
 
+String _formatDate(int millis) {
+  final d = DateTime.fromMillisecondsSinceEpoch(millis);
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(d.day)}/${two(d.month)}/${d.year} ${two(d.hour)}:${two(d.minute)}';
+}
+
 class NoteCard extends StatelessWidget {
   final Note note;
   final VoidCallback onTap;
@@ -105,7 +111,7 @@ class NoteCard extends StatelessWidget {
                     const SizedBox(height: 8),
 
                     Text(
-                      note.date,
+                      _formatDate(note.updatedAt),
                       style: const TextStyle(
                         fontSize: 11,
                         color:

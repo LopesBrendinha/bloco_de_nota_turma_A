@@ -2,6 +2,7 @@ import 'package:bloco_de_nota_turma_a/models/note.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+// Acesso ao SQLite local. As telas não usam esta classe: elas falam com o NoteRepository.
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
 
@@ -29,12 +30,15 @@ class DatabaseHelper {
   Future<void> _createDB(Database db, int version) async {
     await db.execute('''
         CREATE TABLE notes(
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT PRIMARY KEY,
           uid TEXT NOT NULL,
           title TEXT NOT NULL,
           content TEXT NOT NULL,
-          date TEXT NOT NULL,
-        
+          category TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          deleted_at INTEGER,
+          sync_status TEXT NOT NULL DEFAULT 'pending'
         )
       ''');
   }
@@ -51,11 +55,11 @@ class DatabaseHelper {
     final result = await db.query(
       "notes",
 
-      where: "uid = ?",
+      where: "uid = ? AND deleted_at IS NULL",
 
       whereArgs: [uid],
 
-      orderBy: "id DESC",
+      orderBy: "updated_at DESC",
     );
 
     return result.map((map) => Note.fromMap(map)).toList();
@@ -74,7 +78,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteNote(int id) async{
+  Future<int> deleteNotePermanently(String id) async {
     final db = await instance.database;
 
     return await db.delete(
