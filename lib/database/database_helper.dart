@@ -55,7 +55,7 @@ class DatabaseHelper {
     final result = await db.query(
       "notes",
 
-      where: "uid = ? AND deleted_at IS NULL",
+      where: "uid = ? AND deleted_at IS NULL AND sync_status != 'pending_purge'",
 
       whereArgs: [uid],
 
@@ -85,6 +85,55 @@ class DatabaseHelper {
       'notes',
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  Future<List<Note>> getNotesBySyncStatus(String uid, String status) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'notes',
+      where: 'uid = ? AND sync_status = ?',
+      whereArgs: [uid, status],
+    );
+
+    return result.map((map) => Note.fromMap(map)).toList();
+  }
+
+  // Todas as notas do usuário, inclusive as da lixeira e as pending_purge.
+  // Só a sincronização usa: as telas usam getNotes.
+  Future<List<Note>> getAllNotes(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'notes',
+      where: 'uid = ?',
+      whereArgs: [uid],
+    );
+
+    return result.map((map) => Note.fromMap(map)).toList();
+  }
+
+  Future<void> upsertNote(Note note) async {
+    final db = await instance.database;
+
+    await db.insert(
+      'notes',
+      note.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Só marca se a nota não mudou desde o envio (mesmo updated_at, ainda
+  // pending). Uma edição ou um "excluir de vez" feito durante o upsert fica
+  // pending e sobe no próximo ciclo.
+  Future<void> markSynced(String id, int updatedAt) async {
+    final db = await instance.database;
+
+    await db.rawUpdate(
+      "UPDATE notes SET sync_status = 'synced' "
+      "WHERE id = ? AND updated_at = ? AND sync_status = 'pending'",
+      [id, updatedAt],
     );
   }
 }

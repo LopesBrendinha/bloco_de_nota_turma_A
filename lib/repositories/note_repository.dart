@@ -1,10 +1,17 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../database/database_helper.dart';
 import '../models/note.dart';
+import '../services/firestore_service.dart';
+import 'sync_decision.dart';
+
+enum SyncResult { ok, offline, error }
 
 const _idChars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -21,6 +28,11 @@ String newNoteId() => String.fromCharCodes(
 
 class NoteRepository {
   final DatabaseHelper _database = DatabaseHelper.instance;
+  final FirestoreService _firestore = FirestoreService();
+
+  // Sincronização em andamento. É static porque cada tela cria o seu
+  // NoteRepository, e só pode existir uma sincronização por vez no app.
+  static Future<SyncResult>? _running;
 
   String get _uid => FirebaseAuth.instance.currentUser!.uid;
 
@@ -41,6 +53,7 @@ class NoteRepository {
         syncStatus: 'pending',
       ),
     );
+    unawaited(sync());
   }
 
   Future<void> update(
@@ -56,6 +69,7 @@ class NoteRepository {
         syncStatus: 'pending',
       ),
     );
+    unawaited(sync());
   }
 
   // Exclusão reversível: a linha fica no banco com deleted_at preenchido.
@@ -64,5 +78,77 @@ class NoteRepository {
     await _database.updateNote(
       note.copyWith(deletedAt: now, updatedAt: now, syncStatus: 'pending'),
     );
+    unawaited(sync());
+  }
+
+  // Se já existe uma sincronização rodando, devolve a mesma, sem começar outra.
+  Future<SyncResult> sync() =>
+      _running ??= _sync().whenComplete(() => _running = null);
+
+  Future<SyncResult> _sync() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return SyncResult.ok;
+    final uid = user.uid;
+
+    try {
+      final connectivity = await Connectivity().checkConnectivity();
+      if (connectivity.every((c) => c == ConnectivityResult.none)) {
+        return SyncResult.offline;
+      }
+
+      // Busca antes de enviar: enviar às cegas uma edição offline mais velha
+      // sobrescreveria uma edição mais nova feita em outro aparelho.
+      final remote = {
+        for (final note in await _firestore.fetchAll(uid)) note.id: note,
+      };
+
+      for (final note in await _database.getNotesBySyncStatus(uid, 'pending')) {
+        // A nuvem tem uma versão mais nova: não sobrescreve, o merge baixa.
+        if (decide(note, remote[note.id]) == SyncDecision.useRemote) continue;
+        await _firestore.upsert(note);
+        await _database.markSynced(note.id, note.updatedAt);
+        // O mapa foi baixado antes do envio. Sem isto, o merge veria uma nota
+        // synced ausente da nuvem e a apagaria.
+        remote[note.id] = note;
+      }
+      for (final note in await _database.getNotesBySyncStatus(
+        uid,
+        'pending_purge',
+      )) {
+        await _firestore.delete(uid, note.id);
+        await _database.deleteNotePermanently(note.id);
+        remote.remove(note.id);
+      }
+
+      final local = {
+        for (final note in await _database.getAllNotes(uid)) note.id: note,
+      };
+      for (final id in {...local.keys, ...remote.keys}) {
+        switch (decide(local[id], remote[id])) {
+          case SyncDecision.useRemote:
+            await _database.upsertNote(remote[id]!);
+          case SyncDecision.deleteLocal:
+            await _database.deleteNotePermanently(id);
+          case SyncDecision.keepLocal:
+          case SyncDecision.nothing:
+            break;
+        }
+      }
+
+      return SyncResult.ok;
+    } on TimeoutException {
+      return SyncResult.offline;
+    } on SocketException {
+      return SyncResult.offline;
+    } on FirebaseException catch (e) {
+      if (e.code == 'unavailable' || e.code == 'deadline-exceeded') {
+        return SyncResult.offline;
+      }
+      debugPrint('Erro na sincronização: $e');
+      return SyncResult.error;
+    } catch (e) {
+      debugPrint('Erro na sincronização: $e');
+      return SyncResult.error;
+    }
   }
 }
