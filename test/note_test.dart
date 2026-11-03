@@ -52,6 +52,12 @@ void main() {
     expect(edited.createdAt, 1000);
   });
 
+  test('copyWith com clearDeletedAt volta deletedAt para nulo', () {
+    final trashed = sample(deletedAt: 3000);
+    expect(trashed.copyWith(updatedAt: 4000).deletedAt, 3000);
+    expect(trashed.copyWith(clearDeletedAt: true).deletedAt, isNull);
+  });
+
   test('newNoteId gera 20 caracteres de [A-Za-z0-9]', () {
     final id = newNoteId();
     expect(id, matches(RegExp(r'^[A-Za-z0-9]{20}$')));
