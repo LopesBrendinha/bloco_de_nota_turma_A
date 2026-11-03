@@ -110,4 +110,31 @@ void main() {
     final rows = await (await db.database).query('notes');
     expect(rows.map((r) => r['id']), ['b']);
   });
+
+  test('getNotes deixa de fora as notas pending_purge', () async {
+    await db.insertNote(sample(id: 'a'));
+    await db.insertNote(sample(id: 'b').copyWith(syncStatus: 'pending_purge'));
+
+    final notes = await db.getNotes('user-1');
+
+    expect(notes.map((n) => n.id), ['a']);
+  });
+
+  test('markSynced só marca a nota que não mudou desde o envio', () async {
+    await db.insertNote(sample(id: 'a', updatedAt: 2000));
+    await db.insertNote(sample(id: 'b', updatedAt: 3000));
+    await db.insertNote(
+      sample(id: 'c', updatedAt: 2000).copyWith(syncStatus: 'pending_purge'),
+    );
+
+    for (final id in ['a', 'b', 'c']) {
+      await db.markSynced(id, 2000);
+    }
+
+    final status = {
+      for (final note in await db.getAllNotes('user-1'))
+        note.id: note.syncStatus,
+    };
+    expect(status, {'a': 'synced', 'b': 'pending', 'c': 'pending_purge'});
+  });
 }
