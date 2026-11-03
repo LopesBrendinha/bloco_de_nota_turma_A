@@ -47,29 +47,9 @@ class _NoteFormPageState extends State<NoteFormPage> {
   }
 
   Future<void> newCategory() async {
-    final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nova categoria'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(hintText: 'Nome da categoria'),
-          onSubmitted: (value) => Navigator.pop(context, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Criar'),
-          ),
-        ],
-      ),
+      builder: (context) => const NewCategoryDialog(),
     );
 
     final trimmed = name?.trim() ?? '';
@@ -221,6 +201,51 @@ class _NoteFormPageState extends State<NoteFormPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// O controller fica no State do diálogo: descartá-lo logo depois do
+// showDialog quebra o TextField, que ainda está na tela durante a animação
+// de saída.
+@visibleForTesting
+class NewCategoryDialog extends StatefulWidget {
+  const NewCategoryDialog({super.key});
+
+  @override
+  State<NewCategoryDialog> createState() => _NewCategoryDialogState();
+}
+
+class _NewCategoryDialogState extends State<NewCategoryDialog> {
+  final controller = TextEditingController();
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nova categoria'),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(hintText: 'Nome da categoria'),
+        onSubmitted: (value) => Navigator.pop(context, value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, controller.text),
+          child: const Text('Criar'),
+        ),
+      ],
     );
   }
 }
