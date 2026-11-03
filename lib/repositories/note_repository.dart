@@ -109,17 +109,24 @@ class NoteRepository {
         syncStatus: 'pending',
       ),
     );
+    unawaited(sync());
   }
 
   // Não apaga a linha: se o aparelho estiver offline, a próxima sincronização
   // baixaria a nota de novo do Firestore. A sincronização (2A) apaga na nuvem
   // e depois aqui.
-  Future<void> deletePermanently(Note note) => _markPurge(note);
+  Future<void> deletePermanently(Note note) async {
+    await _markPurge(note);
+    unawaited(sync());
+  }
 
+  // Marca todas antes de sincronizar: com a trava do _running, um sync() por
+  // nota deixaria as marcadas depois do primeiro para o próximo ciclo.
   Future<void> emptyTrash() async {
     for (final note in await getTrash()) {
       await _markPurge(note);
     }
+    unawaited(sync());
   }
 
   Future<void> _markPurge(Note note) async {

@@ -114,6 +114,7 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
           onPressed: () async {
             await repository.restore(note);
             await loadNotes();
+            unawaited(runSync());
           },
         ),
       ),
@@ -130,6 +131,7 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
       MaterialPageRoute(builder: (_) => TrashPage()),
     );
     await loadNotes();
+    unawaited(runSync());
   }
 
   Future<void> logout() async {
