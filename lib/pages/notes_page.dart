@@ -1,5 +1,6 @@
 import 'package:bloco_de_nota_turma_a/models/note.dart';
 import 'package:bloco_de_nota_turma_a/pages/note_form_page.dart';
+import 'package:bloco_de_nota_turma_a/repositories/note_filter.dart';
 import 'package:bloco_de_nota_turma_a/repositories/note_repository.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:bloco_de_nota_turma_a/widgets/note_card.dart';
@@ -18,18 +19,33 @@ class _NotesPageState extends State<NotesPage> {
   final AuthService authService = AuthService();
 
   List<Note> notes = [];
+  final searchController = TextEditingController();
+  List<String> categories = [];
+  String query = '';
+  String? selectedCategory;
   @override
   void initState() {
     super.initState();
     loadNotes();
   }
 
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> loadNotes() async {
     final result = await repository.getNotes();
+    final resultCategories = await repository.getCategories();
 
     if (mounted) {
       setState(() {
         notes = result;
+        categories = resultCategories;
+        if (!categories.contains(selectedCategory)) {
+          selectedCategory = null;
+        }
       });
     }
   }
@@ -64,6 +80,11 @@ class _NotesPageState extends State<NotesPage> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final visible = filterNotes(
+      notes,
+      query: query,
+      category: selectedCategory,
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text("Minhas notas", style: TextStyle(fontWeight:FontWeight.bold )),
@@ -89,7 +110,44 @@ class _NotesPageState extends State<NotesPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
             Text(user?.email ?? "", style: TextStyle(color: Color(0xFF77717f), fontSize:13)),
-            SizedBox(height: 20),
+            SizedBox(height: 12),
+            TextField(
+              controller: searchController,
+              onChanged: (value) => setState(() => query = value),
+              decoration: InputDecoration(
+                hintText: "Pesquisar no título ou no conteúdo",
+                prefixIcon: Icon(Icons.search_rounded),
+                suffixIcon: query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: "Limpar pesquisa",
+                        icon: Icon(Icons.close_rounded),
+                        onPressed: () {
+                          searchController.clear();
+                          setState(() => query = '');
+                        },
+                      ),
+              ),
+            ),
+            SizedBox(height: 12),
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  for (final category in [null, ...categories])
+                    Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(category ?? "Todas"),
+                        selected: selectedCategory == category,
+                        onSelected: (_) => setState(() => selectedCategory = category),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
             if(notes.isEmpty)
               Expanded(
                 child: Center(
@@ -117,12 +175,23 @@ class _NotesPageState extends State<NotesPage> {
                   )
                 )
               )
+            else if (visible.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    query.trim().isEmpty
+                        ? "Nenhuma nota nesta categoria"
+                        : "Nenhuma nota encontrada para \"${query.trim()}\"",
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
             else
                 Expanded(
                   child: ListView.builder(
-                    itemCount: notes.length,
+                    itemCount: visible.length,
                     itemBuilder: (context, index){
-                      final note = notes[index];
+                      final note = visible[index];
 
                       return NoteCard(
                         note: note,
