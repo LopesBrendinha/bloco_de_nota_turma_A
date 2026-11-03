@@ -52,6 +52,12 @@ void main() {
     expect(edited.createdAt, 1000);
   });
 
+  test('copyWith com clearCategory volta category para nulo', () {
+    final note = sample(category: 'Estudos');
+    expect(note.copyWith(title: 'Novo').category, 'Estudos');
+    expect(note.copyWith(clearCategory: true).category, isNull);
+  });
+
   test('newNoteId gera 20 caracteres de [A-Za-z0-9]', () {
     final id = newNoteId();
     expect(id, matches(RegExp(r'^[A-Za-z0-9]{20}$')));
