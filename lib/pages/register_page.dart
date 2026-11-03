@@ -1,6 +1,7 @@
+
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -25,12 +26,17 @@ class _RegisterPageState extends State<RegisterPage> {
     final confirm = confirmPasswordController.text.trim();
 
     if (email.isEmpty || password.isEmpty || confirm.isEmpty) {
-      showMessage("Preencha todos os campos.");
-
+      showMessage('Preencha todos os campos.');
       return;
     }
+
     if (password != confirm) {
-      showMessage("As senhas não são iguais.");
+      showMessage('As senhas não são iguais.');
+      return;
+    }
+
+    if (password.length < 6) {
+      showMessage('A senha deve ter pelo menos 6 caracteres.');
       return;
     }
 
@@ -40,17 +46,30 @@ class _RegisterPageState extends State<RegisterPage> {
 
     try {
       await authService.register(email, password);
+
       if (mounted) {
-        showMessage("Conta Criada com sucesso");
+        showMessage('Conta criada com sucesso!');
         Navigator.pop(context);
       }
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Erro Firebase Auth: ${e.code}');
+      debugPrint('Mensagem: ${e.message}');
+
+      if (mounted) {
+        showMessage('Erro: ${e.message ?? e.code}');
+      }
     } catch (e) {
-      showMessage("Não foi possivel criar a conta.");
-    }
-    if (mounted) {
-      setState(() {
-        loading = false;
-      });
+      debugPrint('Erro inesperado: $e');
+
+      if (mounted) {
+        showMessage('Erro inesperado ao criar conta.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
     }
   }
 
@@ -59,7 +78,6 @@ class _RegisterPageState extends State<RegisterPage> {
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
-
     super.dispose();
   }
 
@@ -68,7 +86,9 @@ class _RegisterPageState extends State<RegisterPage> {
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
       ),
     );
   }
@@ -76,58 +96,62 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Criar Conta")),
+      appBar: AppBar(
+        title: const Text('Criar Conta'),
+      ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(28),
+        padding: const EdgeInsets.all(28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 15),
-            Text(
-              "Comece suas anotações",
+            const SizedBox(height: 15),
+            const Text(
+              'Comece suas anotações',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Color(0xff292333),
               ),
             ),
-            SizedBox(height: 10),
-            Text(
-              "Crie sua conta para começar",
-              style: TextStyle(color: Color(0xff777717f)),
+            const SizedBox(height: 10),
+            const Text(
+              'Crie sua conta para começar',
+              style: TextStyle(
+                color: Color(0xff777777),
+              ),
             ),
-            SizedBox(height: 35),
-            Text(
-              "E-mail",
+            const SizedBox(height: 35),
+            const Text(
+              'E-mail',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: Color(0xff40394a),
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                hintText: "seu@email.com",
+              decoration: const InputDecoration(
+                hintText: 'seu@email.com',
                 prefixIcon: Icon(Icons.email_outlined),
               ),
             ),
-            SizedBox(height: 20),
-            Text(
-              "Senha",
+            const SizedBox(height: 20),
+            const Text(
+              'Senha',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: Color(0xff40394a),
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextField(
               controller: passwordController,
               obscureText: obscurePassword,
               decoration: InputDecoration(
-                hintText: "Digite sua senha",
-                prefixIcon: Icon(Icons.lock_outline),
+                hintText: 'Digite sua senha',
+                prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   onPressed: () {
                     setState(() {
@@ -142,21 +166,21 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
             ),
-            SizedBox(height: 20),
-            Text(
-              "Confirmar Senha",
+            const SizedBox(height: 20),
+            const Text(
+              'Confirmar Senha',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: Color(0xff40394a),
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextField(
               controller: confirmPasswordController,
               obscureText: obscurePassword,
               decoration: InputDecoration(
-                hintText: "Digite novamente",
-                prefixIcon: Icon(Icons.lock_outline),
+                hintText: 'Digite novamente',
+                prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   onPressed: () {
                     setState(() {
@@ -171,12 +195,27 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
             ),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: loading ? null : register,
-              child: loading
-                  ? CircularProgressIndicator(color: Colors.white)
-                  : Text("Criar minha conta", style: TextStyle(fontWeight: FontWeight.bold),)
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: loading ? null : register,
+                child: loading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Criar minha conta',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
             ),
           ],
         ),

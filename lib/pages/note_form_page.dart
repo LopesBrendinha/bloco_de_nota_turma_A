@@ -1,8 +1,10 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../database/database_helper.dart';
 import '../models/note.dart';
+import '../services/sync_service.dart';
 
 class NoteFormPage extends StatefulWidget {
   final Note? note;
@@ -15,10 +17,21 @@ class NoteFormPage extends StatefulWidget {
 
 class _NoteFormPageState extends State<NoteFormPage> {
   final titleController = TextEditingController();
-
   final contentController = TextEditingController();
 
   final database = DatabaseHelper.instance;
+  final syncService = SyncService();
+
+  final List<String> categories = [
+    'Geral',
+    'Estudos',
+    'Trabalho',
+    'Pessoal',
+    'Projetos',
+  ];
+
+  late String selectedCategory;
+  bool isSaving = false;
 
   bool get isEditing => widget.note != null;
 
@@ -26,70 +39,111 @@ class _NoteFormPageState extends State<NoteFormPage> {
   void initState() {
     super.initState();
 
+    selectedCategory = widget.note?.category ?? 'Geral';
+
     if (isEditing) {
       titleController.text = widget.note!.title;
-
       contentController.text = widget.note!.content;
     }
   }
 
   Future<void> saveNote() async {
-    // Pegamos o usuário atualmente autenticado.
+    if (isSaving) return;
+
     final user = FirebaseAuth.instance.currentUser;
 
-    // Sem usuário não podemos salvar.
     if (user == null) return;
 
-    // Pegamos os valores digitados.
     final title = titleController.text.trim();
-
     final content = contentController.text.trim();
 
-    // Verificamos se existe conteúdo.
     if (content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Digite algum conteúdo para a nota.'),
+        ),
+      );
       return;
     }
 
-    // Criamos a data da alteração.
-    final now = DateTime.now();
+    setState(() {
+      isSaving = true;
+    });
 
-    final date =
-        '${now.day.toString().padLeft(2, '0')}/'
-        '${now.month.toString().padLeft(2, '0')}/'
-        '${now.year} '
-        '${now.hour.toString().padLeft(2, '0')}:'
-        '${now.minute.toString().padLeft(2, '0')}';
+    try {
+      final now = DateTime.now();
 
-    // Criamos um objeto Note.
-    //
-    // Se estamos editando:
-    //     widget.note?.id
-    // mantém o ID existente.
-    //
-    // Se estamos criando:
-    //     o ID será null.
-    final note = Note(
-      id: widget.note?.id,
-      uid: user.uid,
-      title: title,
-      content: content,
-      date: date,
-    );
+      final date =
+          '${now.day.toString().padLeft(2, '0')}/'
+          '${now.month.toString().padLeft(2, '0')}/'
+          '${now.year} '
+          '${now.hour.toString().padLeft(2, '0')}:'
+          '${now.minute.toString().padLeft(2, '0')}';
 
-    // Verificamos se estamos criando
-    // ou editando uma nota.
-    if (isEditing) {
-      // UPDATE
-      await database.updateNote(note);
-    } else {
-      // INSERT
-      await database.insertNote(note);
-    }
+      final note = Note(
+        id: widget.note?.id,
+        uid: user.uid,
+        title: title,
+        content: content,
+        date: date,
+        category: selectedCategory,
+        cloudId: widget.note?.cloudId,
+        isSynced: false,
 
-    // Depois de salvar,
-    // voltamos para a tela anterior.
-    if (mounted) {
+        // Preserva o status de favorito durante a edição.
+        isFavorite: widget.note?.isFavorite ?? false,
+      );
+
+      late Note savedNote;
+
+      // Salva primeiro no banco de dados local.
+      if (isEditing) {
+        await database.updateNote(note);
+        savedNote = note;
+      } else {
+        final id = await database.insertNote(note);
+
+        savedNote = Note(
+          id: id,
+          uid: note.uid,
+          title: note.title,
+          content: note.content,
+          date: note.date,
+          category: note.category,
+          cloudId: note.cloudId,
+          isSynced: false,
+          isFavorite: note.isFavorite,
+        );
+      }
+
+      // Tenta sincronizar com o Firebase.
+      try {
+        await syncService.uploadNote(savedNote);
+      } catch (error) {
+        debugPrint(
+          'Nota salva localmente. Sincronização pendente: $error',
+        );
+      }
+
+      if (!mounted) return;
+
       Navigator.pop(context);
+    } catch (error) {
+      debugPrint('Erro ao salvar nota: $error');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível salvar a nota.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
     }
   }
 
@@ -97,7 +151,6 @@ class _NoteFormPageState extends State<NoteFormPage> {
   void dispose() {
     titleController.dispose();
     contentController.dispose();
-
     super.dispose();
   }
 
@@ -109,31 +162,31 @@ class _NoteFormPageState extends State<NoteFormPage> {
           isEditing ? 'Editar nota' : 'Nova nota',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-
         actions: [
           IconButton(
-            onPressed: saveNote,
-            icon: const Icon(Icons.check_rounded),
+            onPressed: isSaving ? null : saveNote,
+            icon: isSaving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.check_rounded),
           ),
-
           const SizedBox(width: 8),
         ],
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(22),
-
         child: Column(
           children: [
             TextField(
               controller: titleController,
-
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF292333),
               ),
-
               decoration: const InputDecoration(
                 hintText: 'Título',
                 border: InputBorder.none,
@@ -141,25 +194,49 @@ class _NoteFormPageState extends State<NoteFormPage> {
                 contentPadding: EdgeInsets.symmetric(horizontal: 4),
               ),
             ),
-
             const Divider(color: Color(0xFFE4DFEA)),
-
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Categoria',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: selectedCategory,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.category_outlined),
+              ),
+              items: categories.map((category) {
+                return DropdownMenuItem(
+                  value: category,
+                  child: Text(category),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    selectedCategory = value;
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 12),
             Expanded(
               child: TextField(
                 controller: contentController,
-
                 maxLines: null,
-
                 expands: true,
-
                 textAlignVertical: TextAlignVertical.top,
-
                 style: const TextStyle(
                   fontSize: 17,
                   height: 1.5,
                   color: Color(0xFF40394A),
                 ),
-
                 decoration: const InputDecoration(
                   hintText: 'Comece a escrever...',
                   border: InputBorder.none,

@@ -1,127 +1,115 @@
-import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
 import '../models/note.dart';
 
 class NoteCard extends StatelessWidget {
   final Note note;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback onFavorite;
 
   const NoteCard({
     super.key,
     required this.note,
     required this.onTap,
     required this.onDelete,
+    required this.onFavorite,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(
-        bottom: 14,
-      ),
-
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
         ],
       ),
-
       child: InkWell(
-        borderRadius:
-            BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(22),
         onTap: onTap,
-
         child: Padding(
           padding: const EdgeInsets.all(20),
-
           child: Row(
             children: [
               Container(
                 width: 48,
                 height: 48,
-
                 decoration: BoxDecoration(
-                  color:
-                      const Color(0xFFEDE5FA),
-                  borderRadius:
-                      BorderRadius.circular(15),
+                  color: const Color(0xFFEDE5FA),
+                  borderRadius: BorderRadius.circular(15),
                 ),
-
                 child: const Icon(
                   Icons.notes_rounded,
-                  color:
-                      Color(0xFF6C4AB6),
+                  color: Color(0xFF6C4AB6),
                 ),
               ),
-
               const SizedBox(width: 15),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      note.title.isEmpty
-                          ? 'Sem título'
-                          : note.title,
+                      note.title.isEmpty ? 'Sem título' : note.title,
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
-
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 17,
-                        fontWeight:
-                            FontWeight.bold,
-                        color:
-                            Color(0xFF292333),
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF292333),
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
                     Text(
                       note.content,
                       maxLines: 2,
-                      overflow:
-                          TextOverflow.ellipsis,
-
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color:
-                            Color(0xFF77717F),
+                        color: Color(0xFF77717F),
                         height: 1.4,
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     Text(
                       note.date,
                       style: const TextStyle(
                         fontSize: 11,
-                        color:
-                            Color(0xFF9A94A1),
+                        color: Color(0xFF9A94A1),
                       ),
                     ),
                   ],
                 ),
               ),
 
+              // Botão de favorito
+              IconButton(
+                onPressed: onFavorite,
+                tooltip: note.isFavorite
+                    ? 'Remover dos favoritos'
+                    : 'Adicionar aos favoritos',
+                icon: Icon(
+                  note.isFavorite
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
+                  color: note.isFavorite
+                      ? Colors.amber
+                      : const Color(0xFF9A94A1),
+                ),
+              ),
+
+              // Botão de exclusão
               IconButton(
                 onPressed: onDelete,
+                tooltip: 'Excluir nota',
                 icon: const Icon(
                   Icons.delete_outline_rounded,
-                  color:
-                      Color(0xFFB45F6C),
+                  color: Color(0xFFB45F6C),
                 ),
               ),
             ],
