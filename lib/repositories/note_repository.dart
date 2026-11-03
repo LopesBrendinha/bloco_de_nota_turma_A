@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import '../database/database_helper.dart';
 import '../models/note.dart';
 import '../services/firestore_service.dart';
+import 'note_filter.dart';
 import 'sync_decision.dart';
 
 enum SyncResult { ok, offline, error }
@@ -26,6 +27,11 @@ String newNoteId() => String.fromCharCodes(
   ),
 );
 
+String? _cleanCategory(String? category) {
+  final trimmed = category?.trim() ?? '';
+  return trimmed.isEmpty ? null : trimmed;
+}
+
 class NoteRepository {
   final DatabaseHelper _database = DatabaseHelper.instance;
   final FirestoreService _firestore = FirestoreService();
@@ -40,7 +46,14 @@ class NoteRepository {
 
   Future<List<Note>> getNotes() => _database.getNotes(_uid);
 
-  Future<void> create({required String title, required String content}) async {
+  Future<List<String>> getCategories() async =>
+      mergeCategories(await _database.getCategories(_uid));
+
+  Future<void> create({
+    required String title,
+    required String content,
+    String? category,
+  }) async {
     final now = _now;
     await _database.insertNote(
       Note(
@@ -48,6 +61,7 @@ class NoteRepository {
         uid: _uid,
         title: title,
         content: content,
+        category: _cleanCategory(category),
         createdAt: now,
         updatedAt: now,
         syncStatus: 'pending',
@@ -60,11 +74,15 @@ class NoteRepository {
     Note note, {
     required String title,
     required String content,
+    String? category,
   }) async {
+    final cleaned = _cleanCategory(category);
     await _database.updateNote(
       note.copyWith(
         title: title,
         content: content,
+        category: cleaned,
+        clearCategory: cleaned == null,
         updatedAt: _now,
         syncStatus: 'pending',
       ),

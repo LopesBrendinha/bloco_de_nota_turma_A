@@ -137,4 +137,27 @@ void main() {
     };
     expect(status, {'a': 'synced', 'b': 'pending', 'c': 'pending_purge'});
   });
+
+  test('getCategories devolve as categorias distintas do uid', () async {
+    await db.insertNote(sample(id: 'a', category: 'Estudos'));
+    await db.insertNote(sample(id: 'b', category: 'Estudos'));
+    await db.insertNote(sample(id: 'c', category: 'Faculdade'));
+    await db.insertNote(sample(id: 'd'));
+    await db.insertNote(sample(id: 'e', uid: 'user-2', category: 'Outro'));
+
+    expect(
+      await db.getCategories('user-1'),
+      unorderedEquals(['Estudos', 'Faculdade']),
+    );
+  });
+
+  test('getCategories ignora notas na lixeira e pending_purge', () async {
+    await db.insertNote(sample(id: 'a', category: 'Estudos'));
+    await db.insertNote(sample(id: 'b', category: 'Lixeira', deletedAt: 3000));
+    await db.insertNote(
+      sample(id: 'c', category: 'Purge').copyWith(syncStatus: 'pending_purge'),
+    );
+
+    expect(await db.getCategories('user-1'), ['Estudos']);
+  });
 }

@@ -65,6 +65,19 @@ class DatabaseHelper {
     return result.map((map) => Note.fromMap(map)).toList();
   }
 
+  Future<List<String>> getCategories(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.rawQuery(
+      "SELECT DISTINCT category FROM notes "
+      "WHERE uid = ? AND category IS NOT NULL AND deleted_at IS NULL "
+      "AND sync_status != 'pending_purge'",
+      [uid],
+    );
+
+    return result.map((row) => row['category'] as String).toList();
+  }
+
   Future<int> updateNote(Note note) async {
     final db = await instance.database;
 

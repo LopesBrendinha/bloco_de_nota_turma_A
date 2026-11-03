@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bloco_de_nota_turma_a/models/note.dart';
 import 'package:bloco_de_nota_turma_a/pages/note_form_page.dart';
+import 'package:bloco_de_nota_turma_a/repositories/note_filter.dart';
 import 'package:bloco_de_nota_turma_a/repositories/note_repository.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:bloco_de_nota_turma_a/widgets/note_card.dart';
@@ -23,6 +24,10 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
   List<Note> notes = [];
   bool offline = false;
   StreamSubscription<List<ConnectivityResult>>? connectivitySubscription;
+  final searchController = TextEditingController();
+  List<String> categories = [];
+  String query = '';
+  String? selectedCategory;
 
   @override
   void initState() {
@@ -43,6 +48,7 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     connectivitySubscription?.cancel();
+    searchController.dispose();
     super.dispose();
   }
 
@@ -55,10 +61,15 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
 
   Future<void> loadNotes() async {
     final result = await repository.getNotes();
+    final resultCategories = await repository.getCategories();
 
     if (mounted) {
       setState(() {
         notes = result;
+        categories = resultCategories;
+        if (!categories.contains(selectedCategory)) {
+          selectedCategory = null;
+        }
       });
     }
   }
@@ -121,6 +132,11 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final visible = filterNotes(
+      notes,
+      query: query,
+      category: selectedCategory,
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text("Minhas notas", style: TextStyle(fontWeight:FontWeight.bold )),
@@ -168,27 +184,64 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
                 ),
               ),
             Text(user?.email ?? "", style: TextStyle(color: Color(0xFF77717f), fontSize:13)),
-            SizedBox(height: 20),
+            SizedBox(height: 12),
+            TextField(
+              controller: searchController,
+              onChanged: (value) => setState(() => query = value),
+              decoration: InputDecoration(
+                hintText: "Pesquisar no título ou no conteúdo",
+                prefixIcon: Icon(Icons.search_rounded),
+                suffixIcon: query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: "Limpar pesquisa",
+                        icon: Icon(Icons.close_rounded),
+                        onPressed: () {
+                          searchController.clear();
+                          setState(() => query = '');
+                        },
+                      ),
+              ),
+            ),
+            SizedBox(height: 12),
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  for (final category in [null, ...categories])
+                    Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(category ?? "Todas"),
+                        selected: selectedCategory == category,
+                        onSelected: (_) => setState(() => selectedCategory = category),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: refresh,
                 // O RefreshIndicator só reage se o filho rolar, e uma lista
                 // vazia ou curta não rola sozinha (caso da reinstalação).
-                child: notes.isEmpty
+                child: visible.isEmpty
                     ? LayoutBuilder(
                         builder: (context, constraints) => SingleChildScrollView(
                           physics: AlwaysScrollableScrollPhysics(),
                           child: SizedBox(
                             height: constraints.maxHeight,
-                            child: emptyState(),
+                            child: notes.isEmpty ? emptyState() : noResults(),
                           ),
                         ),
                       )
                     : ListView.builder(
                         physics: AlwaysScrollableScrollPhysics(),
-                        itemCount: notes.length,
+                        itemCount: visible.length,
                         itemBuilder: (context, index){
-                          final note = notes[index];
+                          final note = visible[index];
 
                           return NoteCard(
                             note: note,
@@ -201,6 +254,17 @@ class _NotesPageState extends State<NotesPage> with WidgetsBindingObserver {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget noResults() {
+    return Center(
+      child: Text(
+        query.trim().isEmpty
+            ? "Nenhuma nota nesta categoria"
+            : "Nenhuma nota encontrada para \"${query.trim()}\"",
+        textAlign: TextAlign.center,
       ),
     );
   }
