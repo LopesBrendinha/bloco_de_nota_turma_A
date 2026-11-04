@@ -446,6 +446,7 @@ A interface nunca espera a rede: as escritas chamam `unawaited(sync())`, e as te
 - **Editar offline vence "excluir definitivamente" em outro aparelho.** Se o aparelho B edita uma nota offline e o aparelho A exclui a mesma nota de vez, o B, ao sincronizar, encontra a nota `pending` e ausente da nuvem, e envia de novo. A nota volta.
 
 ![Nota criada offline, com o aviso de sem conexão](screenshots/10-offline-criacao.png)
+![Nota criada offline na lista do app depois que a conexão voltou](screenshots/12-sync-automatico-app.png)
 ![Nota criada offline no Firestore depois que a conexão voltou](screenshots/12-sync-automatico.png)
 ![Dois aparelhos com a edição mais nova](screenshots/16-dois-aparelhos.png)
 ![Erro de sincronização com as regras bloqueadas](screenshots/25-erro-sync.png)
@@ -521,6 +522,7 @@ O repositório não tem segredos de verdade: nenhum JSON de conta de serviço (o
 ### 2.1 Armazenamento e sincronização
 
 ![Nota criada offline, com o aviso de sem conexão](screenshots/10-offline-criacao.png)
+![Nota criada offline na lista do app depois que a conexão voltou](screenshots/12-sync-automatico-app.png)
 ![Nota criada offline no Firestore depois que a conexão voltou](screenshots/12-sync-automatico.png)
 ![Nota de outro aparelho depois do pull-to-refresh](screenshots/13-pull-to-refresh.png)
 ![Notas de volta depois de reinstalar o app](screenshots/14-reinstalacao.png)
@@ -541,7 +543,9 @@ O repositório não tem segredos de verdade: nenhum JSON de conta de serviço (o
 
 ![Nota excluída, com "Desfazer"](screenshots/06-excluir-snackbar.png)
 ![Lixeira com uma nota excluída](screenshots/21-lixeira.png)
+![Lixeira vazia com o aviso "Nota restaurada"](screenshots/22-restaurar-app.png)
 ![Documento restaurado no Firestore, com deleted_at nulo](screenshots/22-restaurar-firestore.png)
+![Lixeira vazia depois de excluir a nota de vez](screenshots/23-excluir-definitivo-app.png)
 ![Nota excluída de vez, sem documento no Firestore](screenshots/23-excluir-definitivo-firestore.png)
 ![A mesma nota na lixeira dos dois aparelhos](screenshots/24-lixeira-dois-aparelhos.png)
 
