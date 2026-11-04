@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/notes/{noteId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.title is string
+        && request.resource.data.content is string
+        && request.resource.data.category is string
+        && request.resource.data.date is string
+        && request.resource.data.updatedAt is int;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/categories/{categoryId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.name is string
+        && request.resource.data.updatedAt is int;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

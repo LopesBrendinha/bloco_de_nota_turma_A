@@ -1,1 +1,37 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"blocodenotasturmaa","appId":"1:917005993637:android:93d6c01000c35761d0af4c","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"blocodenotasturmaa","configurations":{"android":"1:917005993637:android:93d6c01000c35761d0af4c","ios":"1:917005993637:ios:fdac2f5cae22016bd0af4c","web":"1:917005993637:web:17da01cb3f1d22abd0af4c"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "blocodenotasturmaa-b4c4a",
+          "appId": "1:144891935805:android:8307129a5c7a4e2ee13e54",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "blocodenotasturmaa-b4c4a",
+          "configurations": {
+            "android": "1:144891935805:android:8307129a5c7a4e2ee13e54",
+            "ios": "1:144891935805:ios:f16507aaa9f5506ae13e54",
+            "web": "1:144891935805:web:b43cef31a7256498e13e54"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": false
+    }
+  }
+}
