@@ -365,7 +365,10 @@ O documento tem os mesmos campos da tabela, com duas exceções (`Note.toFiresto
 
 Campos: `uid`, `title`, `content`, `category`, `created_at`, `updated_at` e `deleted_at`. Uma nota baixada (`Note.fromFirestore`) entra no SQLite como `synced`.
 
-![Documento de uma nota no Firestore, com o ID de 20 caracteres e os campos](screenshots/20-firestore-documento.png)
+![Firestore: users > 5zjwnCRY… > notes, com 8 documentos de nota, cada um com ID de 20 caracteres](screenshots/28-firebase-notas.png)
+![Firestore: coleção raiz users, com um documento por UID de usuário (4 usuários)](screenshots/27-firebase-usuarios.png)
+
+O documento `users/{uid}` aparece em itálico porque o app só grava a subcoleção `notes` e nunca o próprio documento do usuário. Isso é esperado: as notas continuam salvas e acessíveis pelo caminho.
 
 ## 9. Estratégia de sincronização e tratamento de erros
 
@@ -447,9 +450,7 @@ A interface nunca espera a rede: as escritas chamam `unawaited(sync())`, e as te
 
 ![Nota criada offline, com o aviso de sem conexão](screenshots/10-offline-criacao.png)
 ![Nota criada offline na lista do app depois que a conexão voltou](screenshots/12-sync-automatico-app.png)
-![Nota criada offline no Firestore depois que a conexão voltou](screenshots/12-sync-automatico.png)
 ![Dois aparelhos com a edição mais nova](screenshots/16-dois-aparelhos.png)
-![Erro de sincronização com as regras bloqueadas](screenshots/25-erro-sync.png)
 
 ## 10. Autenticação e segurança dos dados
 
@@ -498,7 +499,8 @@ Para publicar as regras:
 firebase deploy --only firestore:rules --project <ID_DO_PROJETO>
 ```
 
-![Rules Playground negando a leitura de uma nota da conta A pela conta B](screenshots/19-rules-negado.png)
+Não há print do console para as regras. O teste foi feito pela API REST do Firestore: ler as notas da conta A com o token de ID da conta B devolveu HTTP 403 (`PERMISSION_DENIED`), e a conta A lendo o próprio caminho recebeu 200. As regras estão em `firestore.rules`.
+
 ![Conta B com a lista vazia, sem as notas da conta A](screenshots/18-conta-b-vazia.png)
 
 ### Por que os arquivos de configuração do Firebase estão no repositório
@@ -523,13 +525,11 @@ O repositório não tem segredos de verdade: nenhum JSON de conta de serviço (o
 
 ![Nota criada offline, com o aviso de sem conexão](screenshots/10-offline-criacao.png)
 ![Nota criada offline na lista do app depois que a conexão voltou](screenshots/12-sync-automatico-app.png)
-![Nota criada offline no Firestore depois que a conexão voltou](screenshots/12-sync-automatico.png)
 ![Nota de outro aparelho depois do pull-to-refresh](screenshots/13-pull-to-refresh.png)
 ![Notas de volta depois de reinstalar o app](screenshots/14-reinstalacao.png)
 ![Notas de volta depois de sair e entrar de novo](screenshots/15-novo-login.png)
 ![Dois aparelhos com a edição mais nova](screenshots/16-dois-aparelhos.png)
 ![Conta B com a lista vazia](screenshots/18-conta-b-vazia.png)
-![Erro de sincronização com as regras bloqueadas](screenshots/25-erro-sync.png)
 
 ### 2.2 Categorias e pesquisa
 
@@ -544,15 +544,19 @@ O repositório não tem segredos de verdade: nenhum JSON de conta de serviço (o
 ![Nota excluída, com "Desfazer"](screenshots/06-excluir-snackbar.png)
 ![Lixeira com uma nota excluída](screenshots/21-lixeira.png)
 ![Lixeira vazia com o aviso "Nota restaurada"](screenshots/22-restaurar-app.png)
-![Documento restaurado no Firestore, com deleted_at nulo](screenshots/22-restaurar-firestore.png)
 ![Lixeira vazia depois de excluir a nota de vez](screenshots/23-excluir-definitivo-app.png)
-![Nota excluída de vez, sem documento no Firestore](screenshots/23-excluir-definitivo-firestore.png)
 ![A mesma nota na lixeira dos dois aparelhos](screenshots/24-lixeira-dois-aparelhos.png)
 
 ### Console do Firebase
 
-![Documento de uma nota no Firestore](screenshots/20-firestore-documento.png)
-![Rules Playground negando a leitura pela conta B](screenshots/19-rules-negado.png)
+Prova do requisito 2.1: as notas ficam salvas no Cloud Firestore.
+
+![Firestore: users > 5zjwnCRY… > notes, com 8 documentos de nota, cada um com ID de 20 caracteres](screenshots/28-firebase-notas.png)
+![Firestore: coleção raiz users, com um documento por UID de usuário (4 usuários)](screenshots/27-firebase-usuarios.png)
+
+O documento `users/{uid}` aparece em itálico porque o app só grava a subcoleção `notes` e nunca o próprio documento do usuário. Isso é esperado: as notas continuam salvas e acessíveis pelo caminho.
+
+Não há print do console para as regras. O teste foi feito pela API REST do Firestore: ler as notas da conta A com o token de ID da conta B devolveu HTTP 403 (`PERMISSION_DENIED`), e a conta A lendo o próprio caminho recebeu 200. As regras estão em `firestore.rules`.
 
 ### Verificações
 
