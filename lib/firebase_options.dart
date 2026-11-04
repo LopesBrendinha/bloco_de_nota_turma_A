@@ -47,27 +47,27 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCk0m7dk83-AKuadqkdyVJ1yK3-apqVd-o',
-    appId: '1:917005993637:web:17da01cb3f1d22abd0af4c',
-    messagingSenderId: '917005993637',
-    projectId: 'blocodenotasturmaa',
-    authDomain: 'blocodenotasturmaa.firebaseapp.com',
-    storageBucket: 'blocodenotasturmaa.firebasestorage.app',
+    apiKey: 'AIzaSyB9LR4ZF0drinrEWHQsR7kpICTitdp36qA',
+    appId: '1:5808915453:web:08657e7647a89feb98cf94',
+    messagingSenderId: '5808915453',
+    projectId: 'note-apps-raphael',
+    authDomain: 'note-apps-raphael.firebaseapp.com',
+    storageBucket: 'note-apps-raphael.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB9LiQ3tI8ioFn2SCtyLWo10RZcxgRFvxg',
-    appId: '1:917005993637:android:93d6c01000c35761d0af4c',
-    messagingSenderId: '917005993637',
-    projectId: 'blocodenotasturmaa',
-    storageBucket: 'blocodenotasturmaa.firebasestorage.app',
+    apiKey: 'AIzaSyCY19yYOHs_L7n1G7sL_sgNOgBfwWIBTRU',
+    appId: '1:5808915453:android:4027f471bf314dd098cf94',
+    messagingSenderId: '5808915453',
+    projectId: 'note-apps-raphael',
+    storageBucket: 'note-apps-raphael.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBUedL-Dhe4iqkDrF6WLOSWEj7QtdO9WR8',
-    appId: '1:917005993637:ios:fdac2f5cae22016bd0af4c',
-    messagingSenderId: '917005993637',
-    projectId: 'blocodenotasturmaa',
-    storageBucket: 'blocodenotasturmaa.firebasestorage.app',
+    apiKey: 'AIzaSyCTlAGpj3ImV8Y-bLsfZFxrQnzA8bThvEQ',
+    appId: '1:5808915453:ios:1ab16e76c8329c1c98cf94',
+    messagingSenderId: '5808915453',
+    projectId: 'note-apps-raphael',
+    storageBucket: 'note-apps-raphael.firebasestorage.app',
     iosBundleId: 'com.example.blocoDeNotaTurmaa',
   );
 }

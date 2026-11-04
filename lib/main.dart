@@ -1,7 +1,14 @@
+import 'package:bloco_de_nota_turma_a/database/web_database_factory_stub.dart'
+    if (dart.library.js_interop) 'package:bloco_de_nota_turma_a/database/web_database_factory.dart';
 import 'package:bloco_de_nota_turma_a/firebase_options.dart';
 import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
+import 'package:bloco_de_nota_turma_a/pages/notes_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -9,6 +16,13 @@ void main() async{
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Sem o cache offline do Firestore, o SQLite é o único armazenamento offline
+  // e a sincronização é feita pelo NoteRepository. Com o cache ligado, uma
+  // escrita sem internet não falharia e subiria sozinha, sem passar pelo nosso
+  // código.
+  FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false);
+  // O sqflite não tem implementação web: no navegador, o SQLite roda em WASM.
+  if (kIsWeb) databaseFactory = webDatabaseFactory;
   runApp(const MyApp());
 }
 
@@ -62,7 +76,20 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginPage(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snapshot.hasData) {
+            return const NotesPage();
+          }
+          return const LoginPage();
+        },
+      ),
     );
   }
 }

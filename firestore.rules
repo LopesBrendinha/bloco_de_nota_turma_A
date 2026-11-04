@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/notes/{noteId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      // O app confia no campo uid da nota baixada, então ele precisa ser o
+      // mesmo dono do caminho.
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                            && request.resource.data.uid == uid;
+    }
+  }
+}

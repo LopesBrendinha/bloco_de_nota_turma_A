@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../models/note.dart';
 
+String _formatDate(int millis) {
+  final d = DateTime.fromMillisecondsSinceEpoch(millis);
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(d.day)}/${two(d.month)}/${d.year} ${two(d.hour)}:${two(d.minute)}';
+}
+
 class NoteCard extends StatelessWidget {
   final Note note;
   final VoidCallback onTap;
@@ -27,7 +33,7 @@ class NoteCard extends StatelessWidget {
             BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -102,10 +108,32 @@ class NoteCard extends StatelessWidget {
                       ),
                     ),
 
+                    if (note.category != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEDE5FA),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          note.category!,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF6C4AB6),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+
                     const SizedBox(height: 8),
 
                     Text(
-                      note.date,
+                      _formatDate(note.updatedAt),
                       style: const TextStyle(
                         fontSize: 11,
                         color:
