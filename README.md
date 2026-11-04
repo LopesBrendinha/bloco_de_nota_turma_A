@@ -1,4 +1,4 @@
-﻿# Bloco de Notas
+# Bloco de Notas
 
 Aplicativo multiplataforma em Flutter para manter notas pessoais organizadas por categoria, com persistência local em SQLite e sincronização com Cloud Firestore por conta autenticada.
 
@@ -49,8 +49,8 @@ Busca e filtro operam sobre as notas carregadas no SQLite, incluindo as baixadas
 1. Crie ou selecione um projeto Firebase e registre os aplicativos das plataformas que pretende executar.
 2. Ative **Authentication → Sign-in method → E-mail/Senha**.
 3. Crie o banco **Cloud Firestore** em modo de produção.
-4. Configure o projeto local com FlutterFire CLI (`dart pub global activate flutterfire_cli` e `flutterfire configure`) para gerar `lib/firebase_options.dart` e os arquivos de plataforma apropriados. O repositório já contém configuração de cliente para o projeto de demonstração `blocodenotasturmaa`; substitua-a pela configuração do seu projeto se não tiver acesso a ele.
-5. Publique as regras deste repositório: `firebase deploy --only firestore:rules`.
+4. A configuração cliente do repositório está registrada para o projeto `blocodenotasturmaa-b4c4a` (Android, iOS e Web). Para configurá-la novamente, instale FlutterFire CLI (`dart pub global activate flutterfire_cli`) e execute `flutterfire configure --project=blocodenotasturmaa-b4c4a --platforms=android,ios,web`.
+5. Publique as regras deste repositório: `firebase deploy --only firestore:rules --project blocodenotasturmaa-b4c4a`.
 6. Execute o app, cadastre uma conta e entre. As notas são gravadas no caminho associado ao UID autenticado.
 
 As regras em `firestore.rules` exigem autenticação e correspondência entre `request.auth.uid`, o UID do caminho e o campo `uid` do documento; também verificam os tipos dos campos. Nunca publique credenciais administrativas, chaves privadas ou arquivos de service account. `lib/firebase_options.dart` e `android/app/google-services.json` são configurações de cliente usadas pelos SDKs mobile/web, não credenciais administrativas; restrinja as chaves de API no Google Cloud às APIs e aplicativos necessários. As regras do Firestore, e não o segredo da configuração do cliente, protegem os documentos.
