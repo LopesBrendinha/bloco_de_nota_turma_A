@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../database/database_helper.dart';
 import '../models/note.dart';
+import '../repositories/note_repository.dart';
 
 class NoteFormPage extends StatefulWidget {
   final Note? note;
@@ -18,7 +18,7 @@ class _NoteFormPageState extends State<NoteFormPage> {
 
   final contentController = TextEditingController();
 
-  final database = DatabaseHelper.instance;
+  final repository = NoteRepository();
 
   bool get isEditing => widget.note != null;
 
@@ -81,15 +81,10 @@ class _NoteFormPageState extends State<NoteFormPage> {
       updatedAt: now.millisecondsSinceEpoch,
     );
 
-    // Verificamos se estamos criando
-    // ou editando uma nota.
-    if (isEditing) {
-      // UPDATE
-      await database.updateNote(note);
-    } else {
-      // INSERT
-      await database.insertNote(note);
-    }
+    // O repository decide se é INSERT ou UPDATE.
+    // A nota fica salva no SQLite e é enviada
+    // para o Firebase na sincronização.
+    await repository.saveNote(note);
 
     // Depois de salvar,
     // voltamos para a tela anterior.

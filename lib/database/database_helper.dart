@@ -104,6 +104,48 @@ class DatabaseHelper {
     return result.map((map) => Note.fromMap(map)).toList();
   }
 
+  // todas as notas do usuário, inclusive lixeira e excluídas (usado na sincronização)
+  Future<List<Note>> getAllNotes(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "notes",
+      where: "uid = ?",
+      whereArgs: [uid],
+    );
+
+    return result.map((map) => Note.fromMap(map)).toList();
+  }
+
+  // alterações que ainda não foram enviadas para o Firebase
+  Future<List<Note>> getPendingNotes(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "notes",
+      where: "uid = ? AND synced = 0",
+      whereArgs: [uid],
+    );
+
+    return result.map((map) => Note.fromMap(map)).toList();
+  }
+
+  Future<Note?> getNoteByFirebaseId(String uid, String firebaseId) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "notes",
+      where: "uid = ? AND firebaseId = ?",
+      whereArgs: [uid, firebaseId],
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return Note.fromMap(result.first);
+  }
+
   Future<int> updateNote(Note note) async {
     final db = await instance.database;
 
@@ -114,6 +156,32 @@ class DatabaseHelper {
       where: "id = ?",
 
       whereArgs: [note.id],
+    );
+  }
+
+  // Só marca como sincronizada se a nota não foi alterada
+  // enquanto estava sendo enviada (por isso compara o updatedAt).
+  Future<void> markAsSynced(String firebaseId, int updatedAt) async {
+    final db = await instance.database;
+
+    await db.update(
+      'notes',
+      {'synced': 1},
+      where: "firebaseId = ? AND updatedAt = ?",
+      whereArgs: [firebaseId, updatedAt],
+    );
+  }
+
+  // A nota some do app, mas a linha continua no SQLite até
+  // a exclusão ser feita no Firebase também.
+  Future<void> markAsDeleted(int id) async {
+    final db = await instance.database;
+
+    await db.update(
+      'notes',
+      {'deleted': 1, 'synced': 0},
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 

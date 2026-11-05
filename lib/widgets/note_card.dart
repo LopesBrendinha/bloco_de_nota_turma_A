@@ -104,13 +104,34 @@ class NoteCard extends StatelessWidget {
 
                     const SizedBox(height: 8),
 
-                    Text(
-                      note.date,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color:
-                            Color(0xFF9A94A1),
-                      ),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment:
+                          WrapCrossAlignment.center,
+
+                      children: [
+                        Text(
+                          note.date,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color:
+                                Color(0xFF9A94A1),
+                          ),
+                        ),
+
+                        // nuvem preenchida = já está no Firebase
+                        // nuvem com seta = falta enviar
+                        Icon(
+                          note.synced == 1
+                              ? Icons.cloud_done_outlined
+                              : Icons.cloud_upload_outlined,
+                          size: 14,
+                          color: note.synced == 1
+                              ? const Color(0xFF9A94A1)
+                              : const Color(0xFFB7791F),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -1,7 +1,7 @@
-import 'package:bloco_de_nota_turma_a/database/database_helper.dart';
 import 'package:bloco_de_nota_turma_a/models/note.dart';
 import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
 import 'package:bloco_de_nota_turma_a/pages/note_form_page.dart';
+import 'package:bloco_de_nota_turma_a/repositories/note_repository.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:bloco_de_nota_turma_a/widgets/note_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,20 +16,26 @@ class NotesPage extends StatefulWidget {
 }
 
 class _NotesPageState extends State<NotesPage> {
-  final DatabaseHelper database = DatabaseHelper.instance;
+  final NoteRepository repository = NoteRepository();
   final AuthService authService = AuthService();
 
   List<Note> notes = [];
+
+  bool syncing = false;
+  bool syncAgain = false;
+  bool syncError = false;
+
   @override
   void initState() {
     super.initState();
     loadNotes();
+    syncNotes();
   }
 
   Future<void> loadNotes() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final result = await database.getNotes(user.uid);
+    final result = await repository.getNotes(user.uid);
 
     if (mounted) {
       setState(() {
@@ -38,9 +44,40 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
-  Future<void> deleteNote(int id) async {
-    await database.deleteNote(id);
+  Future<void> syncNotes() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // se já estiver sincronizando, sincroniza de novo quando terminar
+    if (syncing) {
+      syncAgain = true;
+      return;
+    }
+
+    setState(() {
+      syncing = true;
+    });
+
+    final success = await repository.syncNotes(user.uid);
     await loadNotes();
+
+    if (!mounted) return;
+
+    setState(() {
+      syncing = false;
+      syncError = !success;
+    });
+
+    if (syncAgain) {
+      syncAgain = false;
+      syncNotes();
+    }
+  }
+
+  Future<void> deleteNote(Note note) async {
+    await repository.deleteNote(note);
+    await loadNotes();
+    syncNotes();
     if (mounted) {
       ScaffoldMessenger.of(
         context,
@@ -63,12 +100,14 @@ class _NotesPageState extends State<NotesPage> {
     MaterialPageRoute(builder:(_)=> NoteFormPage(note: note)));
 
     await loadNotes();
+    syncNotes();
   }
   Future<void> openNewNote() async{
     await Navigator.push(context, 
     MaterialPageRoute(builder:(_)=> NoteFormPage()));
 
     await loadNotes();
+    syncNotes();
   }
 
   @override
@@ -78,6 +117,20 @@ class _NotesPageState extends State<NotesPage> {
       appBar: AppBar(
         title: Text("Minhas notas", style: TextStyle(fontWeight:FontWeight.bold )),
         actions:[
+          syncing
+              ? Padding(
+                  padding: EdgeInsets.all(14),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : IconButton(
+                  tooltip: "Sincronizar",
+                  onPressed: syncNotes,
+                  icon: Icon(Icons.sync_rounded),
+                ),
           IconButton(
             tooltip: "Sair",
             onPressed: logout,
@@ -99,6 +152,27 @@ class _NotesPageState extends State<NotesPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
             Text(user?.email ?? "", style: TextStyle(color: Color(0xFF77717f), fontSize:13)),
+            if (syncError)
+              Container(
+                margin: EdgeInsets.only(top: 12),
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(0xfffff3e6),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_off_rounded, size: 20, color: Color(0xffb7791f)),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "Sem conexão com o Firebase. Suas notas estão salvas no aparelho e serão enviadas quando a conexão voltar.",
+                        style: TextStyle(fontSize: 13, color: Color(0xff7a4b12)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             SizedBox(height: 20),
             if(notes.isEmpty)
               Expanded(
@@ -116,7 +190,8 @@ class _NotesPageState extends State<NotesPage> {
                         ),
                         child: Icon(
                           Icons.sticky_note_2_rounded,
-                          color: Color(0xffede5fa)
+                          size: 45,
+                          color: Color(0xff6c4ab6)
                         )
                       ),
                       SizedBox(height: 25),
@@ -137,7 +212,7 @@ class _NotesPageState extends State<NotesPage> {
                       return NoteCard(
                         note: note,
                         onTap: () => openEditNote(note),
-                        onDelete: () => deleteNote(note.id!),
+                        onDelete: () => deleteNote(note),
                       );
                     }
                   )
