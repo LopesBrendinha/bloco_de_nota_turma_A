@@ -111,6 +111,32 @@ class NoteCard extends StatelessWidget {
                           WrapCrossAlignment.center,
 
                       children: [
+                        Container(
+                          padding:
+                              const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFFF1ECFA),
+                            borderRadius:
+                                BorderRadius.circular(8),
+                          ),
+
+                          child: Text(
+                            note.category,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight:
+                                  FontWeight.w600,
+                              color:
+                                  Color(0xFF6C4AB6),
+                            ),
+                          ),
+                        ),
+
                         Text(
                           note.date,
                           style: const TextStyle(

@@ -20,6 +20,10 @@ class _NotesPageState extends State<NotesPage> {
   final AuthService authService = AuthService();
 
   List<Note> notes = [];
+  List<String> categories = [];
+
+  // "" = todas as categorias
+  String selectedCategory = "";
 
   bool syncing = false;
   bool syncAgain = false;
@@ -35,13 +39,25 @@ class _NotesPageState extends State<NotesPage> {
   Future<void> loadNotes() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final result = await repository.getNotes(user.uid);
+    final resultCategories = await repository.getCategories(user.uid);
+    final result = await repository.getNotes(
+      user.uid,
+      category: selectedCategory,
+    );
 
     if (mounted) {
       setState(() {
+        categories = resultCategories;
         notes = result;
       });
     }
+  }
+
+  void selectCategory(String category) {
+    setState(() {
+      selectedCategory = category;
+    });
+    loadNotes();
   }
 
   Future<void> syncNotes() async {
@@ -104,7 +120,7 @@ class _NotesPageState extends State<NotesPage> {
   }
   Future<void> openNewNote() async{
     await Navigator.push(context, 
-    MaterialPageRoute(builder:(_)=> NoteFormPage()));
+    MaterialPageRoute(builder:(_)=> NoteFormPage(category: selectedCategory)));
 
     await loadNotes();
     syncNotes();
@@ -173,7 +189,18 @@ class _NotesPageState extends State<NotesPage> {
                   ],
                 ),
               ),
-            SizedBox(height: 20),
+            SizedBox(height: 16),
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  categoryChip("Todas", ""),
+                  for (var category in categories) categoryChip(category, category),
+                ],
+              ),
+            ),
+            SizedBox(height: 16),
             if(notes.isEmpty)
               Expanded(
                 child: Center(
@@ -195,7 +222,7 @@ class _NotesPageState extends State<NotesPage> {
                         )
                       ),
                       SizedBox(height: 25),
-                      Text("Nenhuma nota ainda"),
+                      Text(selectedCategory.isEmpty ? "Nenhuma nota ainda" : "Nenhuma nota em $selectedCategory"),
                       SizedBox(height: 8),
                       Text('Crie sua primeira nota.')
                     ]
@@ -220,6 +247,27 @@ class _NotesPageState extends State<NotesPage> {
 
           ],
         ),
+      ),
+    );
+  }
+
+  Widget categoryChip(String label, String value) {
+    final selected = selectedCategory == value;
+
+    return Padding(
+      padding: EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        side: BorderSide.none,
+        backgroundColor: Colors.white,
+        selectedColor: Color(0xff6c4ab6),
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: selected ? Colors.white : Color(0xff40394a),
+        ),
+        onSelected: (_) => selectCategory(value),
       ),
     );
   }

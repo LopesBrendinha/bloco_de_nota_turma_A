@@ -13,8 +13,29 @@ class NoteRepository {
   // se o Firebase não responder nesse tempo consideramos que está sem conexão
   final Duration timeout = Duration(seconds: 10);
 
-  Future<List<Note>> getNotes(String uid) async {
-    return await database.getNotes(uid);
+  final List<String> defaultCategories = ["Estudos", "Trabalho", "Pessoal"];
+
+  Future<List<Note>> getNotes(String uid, {String category = ""}) async {
+    return await database.getNotes(uid, category: category);
+  }
+
+  Future<List<String>> getCategories(String uid) async {
+    final categories = await database.getCategories(uid);
+
+    // primeira vez do usuário nesse aparelho: cria as categorias padrão
+    if (categories.isEmpty) {
+      for (var name in defaultCategories) {
+        await database.insertCategory(uid, name);
+      }
+
+      return await database.getCategories(uid);
+    }
+
+    return categories;
+  }
+
+  Future<void> addCategory(String uid, String name) async {
+    await database.insertCategory(uid, name);
   }
 
   // Salva no SQLite marcando como pendente (synced = 0).
@@ -47,6 +68,9 @@ class NoteRepository {
   // 3. envia para o Firebase o que ficou pendente no SQLite
   Future<bool> syncNotes(String uid) async {
     try {
+      // garante que as categorias padrão existem antes de baixar as notas
+      await getCategories(uid);
+
       // 1
       final remoteNotes = await firestoreService.getNotes(uid).timeout(timeout);
       final remoteIds = <String>[];
@@ -63,6 +87,10 @@ class NoteRepository {
           // a versão do Firebase é mais nova
           await database.updateNote(remote.copyWith(id: local.id));
         }
+
+        // a categoria vem junto com a nota, então recriamos ela
+        // aqui caso o usuário esteja em outro aparelho
+        await database.insertCategory(uid, remote.category);
       }
 
       // 2

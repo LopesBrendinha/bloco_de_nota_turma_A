@@ -87,16 +87,25 @@ class DatabaseHelper {
     return await db.insert('notes', note.toMap());
   }
 
-  Future<List<Note>> getNotes(String uid) async {
+  Future<List<Note>> getNotes(String uid, {String category = ""}) async {
     final db = await instance.database;
+
+    // não mostra as notas da lixeira nem as excluídas
+    String where = "uid = ? AND trashed = 0 AND deleted = 0";
+    List<Object> args = [uid];
+
+    // filtro por categoria ("" = todas)
+    if (category.isNotEmpty) {
+      where += " AND category = ?";
+      args.add(category);
+    }
 
     final result = await db.query(
       "notes",
 
-      // não mostra as notas da lixeira nem as excluídas
-      where: "uid = ? AND trashed = 0 AND deleted = 0",
+      where: where,
 
-      whereArgs: [uid],
+      whereArgs: args,
 
       orderBy: "updatedAt DESC",
     );
@@ -193,5 +202,33 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<List<String>> getCategories(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "categories",
+      where: "uid = ?",
+      whereArgs: [uid],
+      orderBy: "id",
+    );
+
+    return result.map((map) => map['name'] as String).toList();
+  }
+
+  Future<void> insertCategory(String uid, String name) async {
+    final db = await instance.database;
+
+    // não deixa cadastrar a mesma categoria duas vezes
+    final result = await db.query(
+      "categories",
+      where: "uid = ? AND name = ?",
+      whereArgs: [uid, name],
+    );
+
+    if (result.isEmpty) {
+      await db.insert('categories', {'uid': uid, 'name': name});
+    }
   }
 }
