@@ -1,6 +1,7 @@
 import 'package:bloco_de_nota_turma_a/pages/notes_page.dart';
 import 'package:bloco_de_nota_turma_a/pages/register_page.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
@@ -39,6 +40,14 @@ class _LoginPageState extends State<LoginPage> {
           context,
           MaterialPageRoute(builder: (_) => NotesPage()),
         );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'network-request-failed') {
+        showMessage("Sem conexão com a internet. Tente novamente.");
+      } else if (e.code == 'too-many-requests') {
+        showMessage("Muitas tentativas. Aguarde um pouco e tente de novo.");
+      } else {
+        showMessage("E-mail ou senha incorretos");
       }
     } catch (e) {
       showMessage("Não foi possível realizar o login");

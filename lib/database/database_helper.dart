@@ -23,20 +23,84 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 3,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
     await db.execute('''
         CREATE TABLE notes(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firebaseId TEXT,
           uid TEXT NOT NULL,
           title TEXT NOT NULL,
           content TEXT NOT NULL,
+          category TEXT NOT NULL,
           date TEXT NOT NULL,
-        
+          createdAt INTEGER NOT NULL,
+          updatedAt INTEGER NOT NULL,
+          synced INTEGER NOT NULL DEFAULT 0,
+          trashed INTEGER NOT NULL DEFAULT 0,
+          deleted INTEGER NOT NULL DEFAULT 0
         )
       ''');
+
+    await _createCategoriesTable(db);
+  }
+
+  Future<void> _createCategoriesTable(Database db) async {
+    await db.execute('''
+        CREATE TABLE categories(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT NOT NULL,
+          name TEXT NOT NULL
+        )
+      ''');
+
+    await _createCategoriesIndex(db);
+  }
+
+  // o mesmo usuário não pode ter duas categorias com o mesmo nome
+  Future<void> _createCategoriesIndex(Database db) async {
+    await db.execute(
+      "CREATE UNIQUE INDEX idx_categories_uid_name ON categories(uid, name)",
+    );
+  }
+
+  // Quem já tinha o banco na versão 1 não perde as notas,
+  // só ganha as colunas novas.
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE notes ADD COLUMN firebaseId TEXT");
+      await db.execute("ALTER TABLE notes ADD COLUMN category TEXT NOT NULL DEFAULT 'Pessoal'");
+      await db.execute("ALTER TABLE notes ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0");
+      await db.execute("ALTER TABLE notes ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0");
+      await db.execute("ALTER TABLE notes ADD COLUMN synced INTEGER NOT NULL DEFAULT 0");
+      await db.execute("ALTER TABLE notes ADD COLUMN trashed INTEGER NOT NULL DEFAULT 0");
+      await db.execute("ALTER TABLE notes ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0");
+
+      // as notas antigas ganham um id aleatório para usar no Firestore
+      await db.execute("UPDATE notes SET firebaseId = lower(hex(randomblob(10)))");
+
+      await _createCategoriesTable(db);
+    }
+
+    // Na versão 2 a tela e a sincronização podiam cadastrar as categorias
+    // padrão ao mesmo tempo e elas ficavam repetidas.
+    // Apagamos as repetidas e criamos o índice UNIQUE.
+    if (oldVersion == 2) {
+      await db.execute('''
+          DELETE FROM categories WHERE id NOT IN (
+            SELECT MIN(id) FROM categories GROUP BY uid, name
+          )
+        ''');
+
+      await _createCategoriesIndex(db);
+    }
   }
 
   Future<int> insertNote(Note note) async {
@@ -45,20 +109,99 @@ class DatabaseHelper {
     return await db.insert('notes', note.toMap());
   }
 
-  Future<List<Note>> getNotes(String uid) async {
+  Future<List<Note>> getNotes(
+    String uid, {
+    String search = "",
+    String category = "",
+    String order = "updatedAt DESC",
+  }) async {
     final db = await instance.database;
+
+    // não mostra as notas da lixeira nem as excluídas
+    String where = "uid = ? AND trashed = 0 AND deleted = 0";
+    List<Object> args = [uid];
+
+    // pesquisa pelo título ou pelo conteúdo
+    // o LIKE com % procura o texto em qualquer parte
+    if (search.isNotEmpty) {
+      where += " AND (title LIKE ? OR content LIKE ?)";
+      args.add("%$search%");
+      args.add("%$search%");
+    }
+
+    // filtro por categoria ("" = todas)
+    if (category.isNotEmpty) {
+      where += " AND category = ?";
+      args.add(category);
+    }
 
     final result = await db.query(
       "notes",
 
-      where: "uid = ?",
+      where: where,
 
-      whereArgs: [uid],
+      whereArgs: args,
 
-      orderBy: "id DESC",
+      // ex: "updatedAt DESC" ou "createdAt ASC"
+      orderBy: order,
     );
 
     return result.map((map) => Note.fromMap(map)).toList();
+  }
+
+  Future<List<Note>> getTrash(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "notes",
+      where: "uid = ? AND trashed = 1 AND deleted = 0",
+      whereArgs: [uid],
+      orderBy: "updatedAt DESC",
+    );
+
+    return result.map((map) => Note.fromMap(map)).toList();
+  }
+
+  // todas as notas do usuário, inclusive lixeira e excluídas (usado na sincronização)
+  Future<List<Note>> getAllNotes(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "notes",
+      where: "uid = ?",
+      whereArgs: [uid],
+    );
+
+    return result.map((map) => Note.fromMap(map)).toList();
+  }
+
+  // alterações que ainda não foram enviadas para o Firebase
+  Future<List<Note>> getPendingNotes(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "notes",
+      where: "uid = ? AND synced = 0",
+      whereArgs: [uid],
+    );
+
+    return result.map((map) => Note.fromMap(map)).toList();
+  }
+
+  Future<Note?> getNoteByFirebaseId(String uid, String firebaseId) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "notes",
+      where: "uid = ? AND firebaseId = ?",
+      whereArgs: [uid, firebaseId],
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return Note.fromMap(result.first);
   }
 
   Future<int> updateNote(Note note) async {
@@ -74,6 +217,32 @@ class DatabaseHelper {
     );
   }
 
+  // Só marca como sincronizada se a nota não foi alterada
+  // enquanto estava sendo enviada (por isso compara o updatedAt).
+  Future<void> markAsSynced(String firebaseId, int updatedAt) async {
+    final db = await instance.database;
+
+    await db.update(
+      'notes',
+      {'synced': 1},
+      where: "firebaseId = ? AND updatedAt = ?",
+      whereArgs: [firebaseId, updatedAt],
+    );
+  }
+
+  // A nota some do app, mas a linha continua no SQLite até
+  // a exclusão ser feita no Firebase também.
+  Future<void> markAsDeleted(int id) async {
+    final db = await instance.database;
+
+    await db.update(
+      'notes',
+      {'deleted': 1, 'synced': 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<int> deleteNote(int id) async{
     final db = await instance.database;
 
@@ -81,6 +250,30 @@ class DatabaseHelper {
       'notes',
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  Future<List<String>> getCategories(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "categories",
+      where: "uid = ?",
+      whereArgs: [uid],
+      orderBy: "id",
+    );
+
+    return result.map((map) => map['name'] as String).toList();
+  }
+
+  Future<void> insertCategory(String uid, String name) async {
+    final db = await instance.database;
+
+    // se a categoria já existir o índice UNIQUE barra e o insert é ignorado
+    await db.insert(
+      'categories',
+      {'uid': uid, 'name': name},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
     );
   }
 }

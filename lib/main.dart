@@ -1,19 +1,40 @@
 import 'package:bloco_de_nota_turma_a/firebase_options.dart';
 import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
+import 'package:bloco_de_nota_turma_a/pages/notes_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
 
+  // no navegador o sqflite precisa usar a versão web (sqlite3.wasm)
+  if (kIsWeb) {
+    databaseFactory = databaseFactoryFfiWeb;
+  }
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+
+  // Quem guarda as notas offline é o SQLite,
+  // então o cache do próprio Firestore fica desligado.
+  FirebaseFirestore.instance.settings = Settings(persistenceEnabled: false);
+
+  // se o usuário já entrou antes vai direto para as notas (funciona sem internet)
+  final user = await FirebaseAuth.instance.authStateChanges().first;
+
+  runApp(MyApp(logged: user != null));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool logged;
+
+  const MyApp({super.key, required this.logged});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -62,7 +83,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginPage(),
+      home: logged ? NotesPage() : LoginPage(),
     );
   }
 }
