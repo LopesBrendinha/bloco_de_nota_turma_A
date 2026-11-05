@@ -23,19 +23,62 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
     await db.execute('''
         CREATE TABLE notes(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firebaseId TEXT,
           uid TEXT NOT NULL,
           title TEXT NOT NULL,
           content TEXT NOT NULL,
-          date TEXT NOT NULL
+          category TEXT NOT NULL,
+          date TEXT NOT NULL,
+          createdAt INTEGER NOT NULL,
+          updatedAt INTEGER NOT NULL,
+          synced INTEGER NOT NULL DEFAULT 0,
+          trashed INTEGER NOT NULL DEFAULT 0,
+          deleted INTEGER NOT NULL DEFAULT 0
         )
       ''');
+
+    await _createCategoriesTable(db);
+  }
+
+  Future<void> _createCategoriesTable(Database db) async {
+    await db.execute('''
+        CREATE TABLE categories(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT NOT NULL,
+          name TEXT NOT NULL
+        )
+      ''');
+  }
+
+  // Quem já tinha o banco na versão 1 não perde as notas,
+  // só ganha as colunas novas.
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE notes ADD COLUMN firebaseId TEXT");
+      await db.execute("ALTER TABLE notes ADD COLUMN category TEXT NOT NULL DEFAULT 'Pessoal'");
+      await db.execute("ALTER TABLE notes ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0");
+      await db.execute("ALTER TABLE notes ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0");
+      await db.execute("ALTER TABLE notes ADD COLUMN synced INTEGER NOT NULL DEFAULT 0");
+      await db.execute("ALTER TABLE notes ADD COLUMN trashed INTEGER NOT NULL DEFAULT 0");
+      await db.execute("ALTER TABLE notes ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0");
+
+      // as notas antigas ganham um id aleatório para usar no Firestore
+      await db.execute("UPDATE notes SET firebaseId = lower(hex(randomblob(10)))");
+
+      await _createCategoriesTable(db);
+    }
   }
 
   Future<int> insertNote(Note note) async {
@@ -50,11 +93,12 @@ class DatabaseHelper {
     final result = await db.query(
       "notes",
 
-      where: "uid = ?",
+      // não mostra as notas da lixeira nem as excluídas
+      where: "uid = ? AND trashed = 0 AND deleted = 0",
 
       whereArgs: [uid],
 
-      orderBy: "id DESC",
+      orderBy: "updatedAt DESC",
     );
 
     return result.map((map) => Note.fromMap(map)).toList();

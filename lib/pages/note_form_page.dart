@@ -70,10 +70,15 @@ class _NoteFormPageState extends State<NoteFormPage> {
     //     o ID será null.
     final note = Note(
       id: widget.note?.id,
+      firebaseId: widget.note?.firebaseId,
       uid: user.uid,
       title: title,
       content: content,
+      category: widget.note?.category ?? 'Pessoal',
       date: date,
+      // a data de criação não muda quando a nota é editada
+      createdAt: widget.note?.createdAt ?? now.millisecondsSinceEpoch,
+      updatedAt: now.millisecondsSinceEpoch,
     );
 
     // Verificamos se estamos criando
