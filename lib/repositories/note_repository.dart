@@ -19,8 +19,14 @@ class NoteRepository {
     String uid, {
     String search = "",
     String category = "",
+    String order = "updatedAt DESC",
   }) async {
-    return await database.getNotes(uid, search: search, category: category);
+    return await database.getNotes(
+      uid,
+      search: search,
+      category: category,
+      order: order,
+    );
   }
 
   Future<List<Note>> getTrash(String uid) async {

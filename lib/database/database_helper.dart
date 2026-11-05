@@ -91,6 +91,7 @@ class DatabaseHelper {
     String uid, {
     String search = "",
     String category = "",
+    String order = "updatedAt DESC",
   }) async {
     final db = await instance.database;
 
@@ -119,7 +120,8 @@ class DatabaseHelper {
 
       whereArgs: args,
 
-      orderBy: "updatedAt DESC",
+      // ex: "updatedAt DESC" ou "createdAt ASC"
+      orderBy: order,
     );
 
     return result.map((map) => Note.fromMap(map)).toList();

@@ -27,6 +27,9 @@ class _NotesPageState extends State<NotesPage> {
   // "" = todas as categorias
   String selectedCategory = "";
 
+  // ordem da lista (vai direto no ORDER BY do SQLite)
+  String order = "updatedAt DESC";
+
   bool syncing = false;
   bool syncAgain = false;
   bool syncError = false;
@@ -52,6 +55,7 @@ class _NotesPageState extends State<NotesPage> {
       user.uid,
       search: searchController.text.trim(),
       category: selectedCategory,
+      order: order,
     );
 
     if (mounted) {
@@ -60,6 +64,13 @@ class _NotesPageState extends State<NotesPage> {
         notes = result;
       });
     }
+  }
+
+  void changeOrder(String value) {
+    setState(() {
+      order = value;
+    });
+    loadNotes();
   }
 
   void selectCategory(String category) {
@@ -180,6 +191,28 @@ class _NotesPageState extends State<NotesPage> {
                   onPressed: syncNotes,
                   icon: Icon(Icons.sync_rounded),
                 ),
+          PopupMenuButton<String>(
+            tooltip: "Ordenar",
+            icon: Icon(Icons.sort_rounded),
+            onSelected: changeOrder,
+            itemBuilder: (context) => [
+              CheckedPopupMenuItem(
+                value: "updatedAt DESC",
+                checked: order == "updatedAt DESC",
+                child: Text("Última atualização"),
+              ),
+              CheckedPopupMenuItem(
+                value: "createdAt DESC",
+                checked: order == "createdAt DESC",
+                child: Text("Criação: mais recentes"),
+              ),
+              CheckedPopupMenuItem(
+                value: "createdAt ASC",
+                checked: order == "createdAt ASC",
+                child: Text("Criação: mais antigas"),
+              ),
+            ],
+          ),
           IconButton(
             tooltip: "Lixeira",
             onPressed: openTrash,
