@@ -23,6 +23,10 @@ class NoteRepository {
     return await database.getNotes(uid, search: search, category: category);
   }
 
+  Future<List<Note>> getTrash(String uid) async {
+    return await database.getTrash(uid);
+  }
+
   Future<List<String>> getCategories(String uid) async {
     final categories = await database.getCategories(uid);
 
@@ -58,9 +62,48 @@ class NoteRepository {
     }
   }
 
+  // Lixeira: a nota não é apagada, só fica com trashed = 1.
+  // O updatedAt muda para a alteração ir para o Firebase também.
+  Future<void> moveToTrash(Note note) async {
+    await saveNote(note.copyWith(
+      trashed: 1,
+      updatedAt: DateTime.now().millisecondsSinceEpoch,
+    ));
+  }
+
+  Future<void> restoreNote(Note note) async {
+    await saveNote(note.copyWith(
+      trashed: 0,
+      updatedAt: DateTime.now().millisecondsSinceEpoch,
+    ));
+  }
+
   // a nota some da tela na hora e é apagada do Firebase na sincronização
-  Future<void> deleteNote(Note note) async {
+  Future<void> deleteForever(Note note) async {
     await database.markAsDeleted(note.id!);
+  }
+
+  Future<void> emptyTrash(String uid) async {
+    final trash = await database.getTrash(uid);
+
+    for (var note in trash) {
+      await database.markAsDeleted(note.id!);
+    }
+  }
+
+  // notas que estão há mais de 30 dias na lixeira são excluídas definitivamente
+  Future<void> removeOldTrash(String uid) async {
+    final limit = DateTime.now()
+        .subtract(Duration(days: 30))
+        .millisecondsSinceEpoch;
+
+    final trash = await database.getTrash(uid);
+
+    for (var note in trash) {
+      if (note.updatedAt < limit) {
+        await database.markAsDeleted(note.id!);
+      }
+    }
   }
 
   // Sincronização entre o SQLite e o Firestore.
@@ -74,6 +117,8 @@ class NoteRepository {
     try {
       // garante que as categorias padrão existem antes de baixar as notas
       await getCategories(uid);
+
+      await removeOldTrash(uid);
 
       // 1
       final remoteNotes = await firestoreService.getNotes(uid).timeout(timeout);

@@ -1,6 +1,7 @@
 import 'package:bloco_de_nota_turma_a/models/note.dart';
 import 'package:bloco_de_nota_turma_a/pages/login_page.dart';
 import 'package:bloco_de_nota_turma_a/pages/note_form_page.dart';
+import 'package:bloco_de_nota_turma_a/pages/trash_page.dart';
 import 'package:bloco_de_nota_turma_a/repositories/note_repository.dart';
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
 import 'package:bloco_de_nota_turma_a/widgets/note_card.dart';
@@ -98,15 +99,38 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
+  // não apaga de verdade, manda para a lixeira
   Future<void> deleteNote(Note note) async {
-    await repository.deleteNote(note);
+    await repository.moveToTrash(note);
     await loadNotes();
     syncNotes();
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Nota deletada com sucesso!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Nota movida para a lixeira"),
+          action: SnackBarAction(
+            label: "Desfazer",
+            onPressed: () => restoreNote(note),
+          ),
+        ),
+      );
     }
+  }
+
+  Future<void> restoreNote(Note note) async {
+    await repository.restoreNote(note);
+    await loadNotes();
+    syncNotes();
+  }
+
+  Future<void> openTrash() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TrashPage()),
+    );
+
+    await loadNotes();
+    syncNotes();
   }
 
   Future<void> logout() async {
@@ -156,6 +180,11 @@ class _NotesPageState extends State<NotesPage> {
                   onPressed: syncNotes,
                   icon: Icon(Icons.sync_rounded),
                 ),
+          IconButton(
+            tooltip: "Lixeira",
+            onPressed: openTrash,
+            icon: Icon(Icons.delete_outline_rounded),
+          ),
           IconButton(
             tooltip: "Sair",
             onPressed: logout,

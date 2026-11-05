@@ -4,14 +4,18 @@ import '../models/note.dart';
 
 class NoteCard extends StatelessWidget {
   final Note note;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final VoidCallback onDelete;
+
+  // só é usado na lixeira
+  final VoidCallback? onRestore;
 
   const NoteCard({
     super.key,
     required this.note,
-    required this.onTap,
+    this.onTap,
     required this.onDelete,
+    this.onRestore,
   });
 
   @override
@@ -163,12 +167,28 @@ class NoteCard extends StatelessWidget {
                 ),
               ),
 
+              if (onRestore != null)
+                IconButton(
+                  tooltip: 'Restaurar',
+                  onPressed: onRestore,
+                  icon: const Icon(
+                    Icons.restore_rounded,
+                    color:
+                        Color(0xFF6C4AB6),
+                  ),
+                ),
+
               IconButton(
+                tooltip: onRestore != null
+                    ? 'Excluir definitivamente'
+                    : 'Mover para a lixeira',
                 onPressed: onDelete,
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
+                icon: Icon(
+                  onRestore != null
+                      ? Icons.delete_forever_outlined
+                      : Icons.delete_outline_rounded,
                   color:
-                      Color(0xFFB45F6C),
+                      const Color(0xFFB45F6C),
                 ),
               ),
             ],

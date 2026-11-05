@@ -125,6 +125,19 @@ class DatabaseHelper {
     return result.map((map) => Note.fromMap(map)).toList();
   }
 
+  Future<List<Note>> getTrash(String uid) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      "notes",
+      where: "uid = ? AND trashed = 1 AND deleted = 0",
+      whereArgs: [uid],
+      orderBy: "updatedAt DESC",
+    );
+
+    return result.map((map) => Note.fromMap(map)).toList();
+  }
+
   // todas as notas do usuário, inclusive lixeira e excluídas (usado na sincronização)
   Future<List<Note>> getAllNotes(String uid) async {
     final db = await instance.database;
