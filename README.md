@@ -311,6 +311,26 @@ As telas abaixo foram capturadas com o app rodando no Chrome em tamanho de celul
 
 Na última imagem o Firebase estava fora do ar: a nota "Anotação feita sem internet" foi salva no SQLite e ficou com o ícone de nuvem com seta (pendente). Quando a conexão voltou, a sincronização enviou a nota e o ícone mudou.
 
+### Evidências no Firebase
+
+Projeto usado nos testes: `bloco-de-notas-emanuel`. As notas criadas pelo app ficam em `users/{uid}/notes`. Na imagem aparecem a coleção `users`, o documento com o `uid` do usuário, a subcoleção `notes` com as notas e os campos de uma delas (`category`, `content`, `createdAt`, `date`, `title`, `trashed`, `uid` e `updatedAt`).
+
+![Notas salvas no Cloud Firestore](screenshots/09_firebase_firestore.jpg)
+
+Usuário cadastrado pelo app no Firebase Authentication. O UID é o mesmo que aparece no caminho das notas no Firestore:
+
+![Usuário no Firebase Authentication](screenshots/10_firebase_authentication.jpg)
+
+Regras publicadas no Firestore (mesmo conteúdo do arquivo `firestore.rules`):
+
+![Regras de segurança publicadas](screenshots/11_firebase_regras.jpg)
+
+Teste das regras no Laboratório de testes do console, tentando ler uma nota do usuário acima. Com o UID de outro usuário a leitura é **negada**. Com o UID do dono da nota a leitura é **permitida**:
+
+| Outro usuário | Dono da nota |
+| :---: | :---: |
+| <img src="screenshots/12_regras_outro_usuario_negado.jpg" width="420"> | <img src="screenshots/13_regras_dono_permitido.jpg" width="420"> |
+
 ## O que foi alterado em relação ao projeto base
 
 | Arquivo | O que mudou |
