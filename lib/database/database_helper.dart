@@ -25,7 +25,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -60,6 +60,15 @@ class DatabaseHelper {
           name TEXT NOT NULL
         )
       ''');
+
+    await _createCategoriesIndex(db);
+  }
+
+  // o mesmo usuário não pode ter duas categorias com o mesmo nome
+  Future<void> _createCategoriesIndex(Database db) async {
+    await db.execute(
+      "CREATE UNIQUE INDEX idx_categories_uid_name ON categories(uid, name)",
+    );
   }
 
   // Quem já tinha o banco na versão 1 não perde as notas,
@@ -78,6 +87,19 @@ class DatabaseHelper {
       await db.execute("UPDATE notes SET firebaseId = lower(hex(randomblob(10)))");
 
       await _createCategoriesTable(db);
+    }
+
+    // Na versão 2 a tela e a sincronização podiam cadastrar as categorias
+    // padrão ao mesmo tempo e elas ficavam repetidas.
+    // Apagamos as repetidas e criamos o índice UNIQUE.
+    if (oldVersion == 2) {
+      await db.execute('''
+          DELETE FROM categories WHERE id NOT IN (
+            SELECT MIN(id) FROM categories GROUP BY uid, name
+          )
+        ''');
+
+      await _createCategoriesIndex(db);
     }
   }
 
@@ -247,15 +269,11 @@ class DatabaseHelper {
   Future<void> insertCategory(String uid, String name) async {
     final db = await instance.database;
 
-    // não deixa cadastrar a mesma categoria duas vezes
-    final result = await db.query(
-      "categories",
-      where: "uid = ? AND name = ?",
-      whereArgs: [uid, name],
+    // se a categoria já existir o índice UNIQUE barra e o insert é ignorado
+    await db.insert(
+      'categories',
+      {'uid': uid, 'name': name},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
     );
-
-    if (result.isEmpty) {
-      await db.insert('categories', {'uid': uid, 'name': name});
-    }
   }
 }
