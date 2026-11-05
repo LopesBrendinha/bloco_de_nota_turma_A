@@ -33,8 +33,7 @@ class DatabaseHelper {
           uid TEXT NOT NULL,
           title TEXT NOT NULL,
           content TEXT NOT NULL,
-          date TEXT NOT NULL,
-        
+          date TEXT NOT NULL
         )
       ''');
   }
