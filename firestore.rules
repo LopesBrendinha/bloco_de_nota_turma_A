@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // As notas ficam em users/{uid}/notes/{id da nota}.
+    // So o proprio usuario (logado com o mesmo uid) pode ler e alterar.
+    match /users/{userId}/notes/{noteId} {
+
+      allow read, delete: if request.auth != null
+                          && request.auth.uid == userId;
+
+      // ao salvar, o campo uid da nota tambem tem que ser o do usuario logado
+      allow create, update: if request.auth != null
+                            && request.auth.uid == userId
+                            && request.resource.data.uid == userId
+                            && request.resource.data.title is string
+                            && request.resource.data.content is string;
+    }
+
+    // Qualquer outro caminho nao tem regra, entao o Firestore bloqueia.
+  }
+}
