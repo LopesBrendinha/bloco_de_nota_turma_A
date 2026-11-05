@@ -18,6 +18,7 @@ class NotesPage extends StatefulWidget {
 class _NotesPageState extends State<NotesPage> {
   final NoteRepository repository = NoteRepository();
   final AuthService authService = AuthService();
+  final searchController = TextEditingController();
 
   List<Note> notes = [];
   List<String> categories = [];
@@ -36,12 +37,19 @@ class _NotesPageState extends State<NotesPage> {
     syncNotes();
   }
 
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> loadNotes() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     final resultCategories = await repository.getCategories(user.uid);
     final result = await repository.getNotes(
       user.uid,
+      search: searchController.text.trim(),
       category: selectedCategory,
     );
 
@@ -129,6 +137,7 @@ class _NotesPageState extends State<NotesPage> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final searching = searchController.text.trim().isNotEmpty;
     return Scaffold(
       appBar: AppBar(
         title: Text("Minhas notas", style: TextStyle(fontWeight:FontWeight.bold )),
@@ -190,6 +199,25 @@ class _NotesPageState extends State<NotesPage> {
                 ),
               ),
             SizedBox(height: 16),
+            TextField(
+              controller: searchController,
+              onChanged: (value) => loadNotes(),
+              decoration: InputDecoration(
+                hintText: "Pesquisar por título ou conteúdo",
+                prefixIcon: Icon(Icons.search_rounded),
+                suffixIcon: searching
+                    ? IconButton(
+                        tooltip: "Limpar pesquisa",
+                        onPressed: () {
+                          searchController.clear();
+                          loadNotes();
+                        },
+                        icon: Icon(Icons.close_rounded),
+                      )
+                    : null,
+              ),
+            ),
+            SizedBox(height: 12),
             SizedBox(
               height: 40,
               child: ListView(
@@ -201,6 +229,16 @@ class _NotesPageState extends State<NotesPage> {
               ),
             ),
             SizedBox(height: 16),
+            if (searching)
+              Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  notes.length == 1
+                      ? "1 nota encontrada"
+                      : "${notes.length} notas encontradas",
+                  style: TextStyle(color: Color(0xFF77717f), fontSize: 13),
+                ),
+              ),
             if(notes.isEmpty)
               Expanded(
                 child: Center(
@@ -222,9 +260,15 @@ class _NotesPageState extends State<NotesPage> {
                         )
                       ),
                       SizedBox(height: 25),
-                      Text(selectedCategory.isEmpty ? "Nenhuma nota ainda" : "Nenhuma nota em $selectedCategory"),
+                      Text(
+                        searching
+                            ? "Nenhuma nota encontrada"
+                            : selectedCategory.isEmpty
+                                ? "Nenhuma nota ainda"
+                                : "Nenhuma nota em $selectedCategory",
+                      ),
                       SizedBox(height: 8),
-                      Text('Crie sua primeira nota.')
+                      Text(searching ? 'Tente pesquisar outra palavra.' : 'Crie sua primeira nota.')
                     ]
                   )
                 )

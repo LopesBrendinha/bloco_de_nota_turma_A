@@ -15,8 +15,12 @@ class NoteRepository {
 
   final List<String> defaultCategories = ["Estudos", "Trabalho", "Pessoal"];
 
-  Future<List<Note>> getNotes(String uid, {String category = ""}) async {
-    return await database.getNotes(uid, category: category);
+  Future<List<Note>> getNotes(
+    String uid, {
+    String search = "",
+    String category = "",
+  }) async {
+    return await database.getNotes(uid, search: search, category: category);
   }
 
   Future<List<String>> getCategories(String uid) async {

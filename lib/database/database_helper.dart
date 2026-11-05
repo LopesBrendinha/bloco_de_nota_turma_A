@@ -87,12 +87,24 @@ class DatabaseHelper {
     return await db.insert('notes', note.toMap());
   }
 
-  Future<List<Note>> getNotes(String uid, {String category = ""}) async {
+  Future<List<Note>> getNotes(
+    String uid, {
+    String search = "",
+    String category = "",
+  }) async {
     final db = await instance.database;
 
     // não mostra as notas da lixeira nem as excluídas
     String where = "uid = ? AND trashed = 0 AND deleted = 0";
     List<Object> args = [uid];
+
+    // pesquisa pelo título ou pelo conteúdo
+    // o LIKE com % procura o texto em qualquer parte
+    if (search.isNotEmpty) {
+      where += " AND (title LIKE ? OR content LIKE ?)";
+      args.add("%$search%");
+      args.add("%$search%");
+    }
 
     // filtro por categoria ("" = todas)
     if (category.isNotEmpty) {
