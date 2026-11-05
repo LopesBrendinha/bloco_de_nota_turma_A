@@ -119,6 +119,8 @@ class _NotesPageState extends State<NotesPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Nota movida para a lixeira"),
+          // com action o snackbar ficava preso na tela até clicar
+          persist: false,
           action: SnackBarAction(
             label: "Desfazer",
             onPressed: () => restoreNote(note),
@@ -135,6 +137,8 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   Future<void> openTrash() async {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => TrashPage()),
