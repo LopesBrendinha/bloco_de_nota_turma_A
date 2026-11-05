@@ -1,4 +1,5 @@
 import 'package:bloco_de_nota_turma_a/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -43,6 +44,18 @@ class _RegisterPageState extends State<RegisterPage> {
       if (mounted) {
         showMessage("Conta Criada com sucesso");
         Navigator.pop(context);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'network-request-failed') {
+        showMessage("Sem conexão com a internet. Tente novamente.");
+      } else if (e.code == 'email-already-in-use') {
+        showMessage("Esse e-mail já está cadastrado.");
+      } else if (e.code == 'weak-password') {
+        showMessage("A senha precisa ter pelo menos 6 caracteres.");
+      } else if (e.code == 'invalid-email') {
+        showMessage("E-mail inválido.");
+      } else {
+        showMessage("Não foi possivel criar a conta.");
       }
     } catch (e) {
       showMessage("Não foi possivel criar a conta.");
@@ -94,7 +107,7 @@ class _RegisterPageState extends State<RegisterPage> {
             SizedBox(height: 10),
             Text(
               "Crie sua conta para começar",
-              style: TextStyle(color: Color(0xff777717f)),
+              style: TextStyle(color: Color(0xff77717f)),
             ),
             SizedBox(height: 35),
             Text(
